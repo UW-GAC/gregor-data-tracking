@@ -1,0 +1,49 @@
+---
+title: GREGoR Data Tracking
+author: DCC
+---
+
+```{r}
+library(AnVIL)
+workspace_name <- "GREGoR_DCC_upload_example"
+workspace_namespace <- "gregor-dcc"
+```
+
+```{r}
+tables <- avtables(namespace=workspace_namespace, name=workspace_name)
+```
+
+```{r}
+n_participants <- filter(tables, table == "participant")$count
+```
+
+```{r}
+n_analytes <- filter(tables, table == "analyte")$count
+```
+
+```{r}
+experiment_tables <- filter(tables, grepl("^experiment", table))
+experiment_tables %>%
+  select(table, count) %>%
+  bind_rows(tibble(table="total", count=sum(experiment_tables$count)))
+```
+
+```{r}
+aligned_read_tables <- tables %>%
+  filter(grepl("^aligned", table), !grepl("_set$", table))
+aligned_read_tables %>%
+  select(table, count) %>%
+  bind_rows(tibble(table="total", count=sum(aligned_read_tables$count)))
+```
+
+```{r}
+phenotype <- avtable("phenotype", 
+                     namespace=workspace_namespace,
+                     name=workspace_name)
+participant <- avtable("participant", 
+                     namespace=workspace_namespace,
+                     name=workspace_name)
+n_phenotype <- nrow(distinct(phenotype, "participant_id"))
+n_no_phenotype <- length(setdiff(participant$participant_id,
+                                 phenotype$participant_id))
+```
