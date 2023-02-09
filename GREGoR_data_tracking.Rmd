@@ -5,45 +5,128 @@ author: DCC
 
 ```{r}
 library(AnVIL)
-workspace_name <- "GREGoR_DCC_upload_example"
-workspace_namespace <- "gregor-dcc"
+library(dplyr)
+options("GCLOUD_SDK_PATH"="~/Applications/google-cloud-sdk") # don't run in AnVIL workspace
+centers <- c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR")
+release <- "U1"
+workspaces <- tibble(center=rep(centers, times=c(rep(1,4),2)),
+                     consent=c(rep("GRU", 5), "HMB")) %>%
+    mutate(workspace=paste("AnVIL_GREGoR", center, release, consent, sep="_"))
+namespace <- "anvil-datastorage"
 ```
 
 ```{r}
-tables <- avtables(namespace=workspace_namespace, name=workspace_name)
+participant <- lapply(workspaces$workspace, function(x) {
+    tryCatch(
+        avtable("participant", namespace=namespace, name=x) %>%
+            select(participant_id) %>%
+            mutate(workspace=x),
+        warning=function(w) NULL, error=function(e) NULL)
+}) %>% bind_rows() %>%
+    left_join(workspaces)
 ```
 
 ```{r}
-n_participants <- filter(tables, table == "participant")$count
+phenotype <- lapply(workspaces$workspace, function(x) {
+    tryCatch(
+        avtable("phenotype", namespace=namespace, name=x) %>%
+            select(participant_id, phenotype_id) %>%
+            distinct(participant_id, .keep_all=TRUE) %>%
+            mutate(workspace=x),
+        warning=function(w) NULL, error=function(e) NULL)
+}) %>% bind_rows() %>%
+    left_join(workspaces)
 ```
 
 ```{r}
-n_analytes <- filter(tables, table == "analyte")$count
+analyte <- lapply(workspaces$workspace, function(x) {
+    tryCatch(
+        avtable("analyte", namespace=namespace, name=x) %>%
+            select(analyte_id, participant_id, analyte_type) %>%
+            mutate(workspace=x),
+        warning=function(w) empty, error=function(e) empty)
+}) %>% bind_rows() %>%
+    left_join(workspaces)
+```
+
+
+```{r}
+experiment_dna_short_read <- lapply(workspaces$workspace, function(x) {
+    tryCatch(
+        avtable("experiment_dna_short_read", namespace=namespace, name=x) %>%
+            select(experiment_dna_short_read_id, analyte_id, experiment_type) %>%
+            mutate(workspace=x),
+        warning=function(w) NULL, error=function(e) NULL)
+}) %>% bind_rows() %>%
+    left_join(workspaces)
 ```
 
 ```{r}
-experiment_tables <- filter(tables, grepl("^experiment", table))
-experiment_tables %>%
-  select(table, count) %>%
-  bind_rows(tibble(table="total", count=sum(experiment_tables$count)))
+aligned_dna_short_read <- lapply(workspaces$workspace, function(x) {
+    tryCatch(
+        avtable("aligned_dna_short_read", namespace=namespace, name=x) %>%
+            select(aligned_dna_short_read_id, experiment_dna_short_read_id, aligned_dna_short_read_file) %>%
+            filter(aligned_dna_short_read_file != "NA") %>%
+            mutate(workspace=x),
+        warning=function(w) NULL, error=function(e) NULL)
+}) %>% bind_rows() %>%
+    left_join(workspaces)
 ```
 
-```{r}
-aligned_read_tables <- tables %>%
-  filter(grepl("^aligned", table), !grepl("_set$", table))
-aligned_read_tables %>%
-  select(table, count) %>%
-  bind_rows(tibble(table="total", count=sum(aligned_read_tables$count)))
-```
+Table 1/4: total number of BAM/CRAM files
 
 ```{r}
-phenotype <- avtable("phenotype", 
-                     namespace=workspace_namespace,
-                     name=workspace_name)
-participant <- avtable("participant", 
-                     namespace=workspace_namespace,
-                     name=workspace_name)
-n_phenotype <- nrow(distinct(phenotype, "participant_id"))
-n_no_phenotype <- length(setdiff(participant$participant_id,
-                                 phenotype$participant_id))
+aligned_dna_short_read %>%
+    count(center)
+```
+
+Table 2: participants with experiment data
+
+```{r}
+all_part <- experiment_dna_short_read %>%
+    left_join(analyte) %>%
+    left_join(participant) %>%
+    distinct(center, consent, participant_id) 
+
+all_part %>%
+    count(center, consent)
+nrow(all_part)
+```
+
+Table 3: analytes and BAM/CRAM files
+
+```{r}
+all_exp <- analyte %>%
+    full_join(experiment_dna_short_read) %>%
+    full_join(aligned_dna_short_read)
+
+sum_exp <- all_exp %>%
+    group_by(center) %>%
+    summarise(analytes=sum(!is.na(analyte_id)),
+              bam_cram=sum(!is.na(aligned_dna_short_read_file)))
+sum_exp
+sum_exp %>%
+    summarise(across(-center, sum))
+```
+
+Table 5: phenotype vs sequencing
+
+```{r}
+all_part <- participant %>%
+    full_join(phenotype) %>%
+    full_join(analyte) %>%
+    full_join(experiment_dna_short_read) %>%
+    full_join(aligned_dna_short_read) %>%
+    distinct(center, consent, workspace, participant_id, .keep_all=TRUE)
+
+sum_part <- all_part %>%
+    group_by(center) %>%
+    summarise(has_pheno=sum(!is.na(phenotype_id)),
+              has_seq=sum(!is.na(aligned_dna_short_read_id)),
+              has_seq_pheno=sum(!is.na(aligned_dna_short_read_id) & !is.na(phenotype_id)),
+              only_seq=sum(!is.na(aligned_dna_short_read_id) & is.na(phenotype_id)),
+              only_pheno=sum(is.na(aligned_dna_short_read_id) & !is.na(phenotype_id)))
+sum_part
+sum_part %>%
+    summarise(across(-center, sum))
 ```
