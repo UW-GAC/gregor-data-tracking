@@ -1,7 +1,13 @@
 ---
-title: GREGoR Data Tracking
+title: GREGoR Data Tracking - U1
 author: DCC
+date: "`r Sys.Date()`"
+output: pdf_document
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+```
 
 ```{r}
 library(AnVIL)
@@ -19,7 +25,7 @@ namespace <- "anvil-datastorage"
 participant <- lapply(workspaces$workspace, function(x) {
     tryCatch(
         avtable("participant", namespace=namespace, name=x) %>%
-            select(participant_id) %>%
+            select(participant_id, family_id) %>%
             mutate(workspace=x),
         warning=function(w) NULL, error=function(e) NULL)
 }) %>% bind_rows() %>%
@@ -73,43 +79,43 @@ aligned_dna_short_read <- lapply(workspaces$workspace, function(x) {
     left_join(workspaces)
 ```
 
-Table 1/4: total number of BAM/CRAM files
+
+## Summary of Study Participants in AnVIL
 
 ```{r}
-aligned_dna_short_read %>%
-    count(center)
+fam <- participant %>%
+    group_by(center, consent) %>%
+    summarise(participants=length(unique(participant_id)),
+              families=length(unique(family_id)))
+
+sum_fam <- fam %>%
+    ungroup() %>%
+    summarise(across(c(participants, families), sum)) %>%
+    mutate(center="All", consent="All")
+
+bind_rows(fam, sum_fam) %>%
+    knitr::kable()
 ```
 
-Table 2: participants with experiment data
+
+## Summary of sequencing experiments with files recorded in data table
 
 ```{r}
-all_part <- experiment_dna_short_read %>%
-    left_join(analyte) %>%
-    left_join(participant) %>%
-    distinct(center, consent, participant_id) 
+seq <- aligned_dna_short_read %>%
+    distinct(center, consent, experiment_dna_short_read_id, .keep_all=TRUE) %>%
+    count(center) %>%
+    rename(`sequencing files`=n)
 
-all_part %>%
-    count(center, consent)
-nrow(all_part)
+sum_seq <- seq %>%
+    summarise(across(-center, sum)) %>%
+    mutate(center="All")
+
+bind_rows(seq, sum_seq) %>%
+    knitr::kable()
 ```
 
-Table 3: analytes and BAM/CRAM files
+## Summary of Data Completeness in AnVIL
 
-```{r}
-all_exp <- analyte %>%
-    full_join(experiment_dna_short_read) %>%
-    full_join(aligned_dna_short_read)
-
-sum_exp <- all_exp %>%
-    group_by(center) %>%
-    summarise(analytes=sum(!is.na(analyte_id)),
-              bam_cram=sum(!is.na(aligned_dna_short_read_file)))
-sum_exp
-sum_exp %>%
-    summarise(across(-center, sum))
-```
-
-Table 5: phenotype vs sequencing
 
 ```{r}
 all_part <- participant %>%
@@ -119,14 +125,24 @@ all_part <- participant %>%
     full_join(aligned_dna_short_read) %>%
     distinct(center, consent, workspace, participant_id, .keep_all=TRUE)
 
-sum_part <- all_part %>%
+ctr_part <- all_part %>%
     group_by(center) %>%
     summarise(has_pheno=sum(!is.na(phenotype_id)),
               has_seq=sum(!is.na(aligned_dna_short_read_id)),
               has_seq_pheno=sum(!is.na(aligned_dna_short_read_id) & !is.na(phenotype_id)),
               only_seq=sum(!is.na(aligned_dna_short_read_id) & is.na(phenotype_id)),
               only_pheno=sum(is.na(aligned_dna_short_read_id) & !is.na(phenotype_id)))
-sum_part
-sum_part %>%
-    summarise(across(-center, sum))
+
+sum_part <- ctr_part %>%
+    summarise(across(-center, sum)) %>%
+    mutate(center="All")
+
+bind_rows(ctr_part, sum_part) %>%
+    knitr::kable()
 ```
+
+- has_pheno: participants with phenotype data in AnVIL
+- has_seq: participants with sequencing data files in AnVIL
+- has_seq_pheno: participants with both sequencing and phenotype data
+- only_seq: participants with sequencing data but without phenotype data
+- only_pheno: participants with phenotype data but without sequencing data
