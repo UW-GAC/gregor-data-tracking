@@ -3,6 +3,7 @@ library(AnvilDataModels)
 library(dplyr)
 library(readr)
 library(lubridate)
+library(jsonlite)
 
 options("GCLOUD_SDK_PATH"="~/Applications/google-cloud-sdk") # don't run in AnVIL workspace
 centers <- c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR")
@@ -41,9 +42,11 @@ combine_tables <- function(table_name) {
         if (table_name %in% tables$table) {
             table <- avtable(table_name, namespace=namespace, name=x)
             # map columns to expected data types so they can be combined
-            for (c in names(table)) {
-                FUN <- conversion_function(model[[table_name]][[c]])
-                table[[c]] <- FUN(table[[c]])
+            if (!grepl("_set$", t)) {
+                for (c in names(table)) {
+                    FUN <- conversion_function(model[[table_name]][[c]])
+                    table[[c]] <- FUN(table[[c]])
+                }
             }
             return(table)
         } else {
@@ -57,6 +60,9 @@ table_names <- names(model)
 table_list <- list()
 for (t in table_names) {
     dat <- combine_tables(t)
+    if (grepl("_set$", t)) {
+        dat <- unnest_set_table(dat)
+    }
     # make sure primary key is still unique
     stopifnot(sum(duplicated(dat[[t]])) == 0)
     
@@ -71,7 +77,7 @@ for (t in table_names) {
 
 json <- list("data_table_import.table_files" = table_list,
              "data_table_import.model_url" = "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json",
-             "data_table_import.workspace_name" = combined_workspaces,
+             "data_table_import.workspace_name" = combined_workspace,
              "data_table_import.workspace_namespace" = combined_namespace,
              "data_table_import.overwrite" = "true"
 ) %>% toJSON(pretty=TRUE, auto_unbox=TRUE, unbox=TRUE)
