@@ -5,6 +5,8 @@ output: html_notebook
 
 Check data completeness in combined workspace
 
+Updates: sort by required/not required, and then by completeness
+
 ```{r}
 library(AnVIL)
 library(AnvilDataModels)
@@ -14,6 +16,9 @@ library(tidyr)
 options("GCLOUD_SDK_PATH"="~/Applications/google-cloud-sdk") # don't run in AnVIL workspace
 workspace <- "GREGOR_COMBINED_CONSORTIUM_U1"
 namespace <- "gregor-dcc"
+
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
+model <- json_to_dm(model_url)
 ```
 
 ```{r}
@@ -41,34 +46,37 @@ aligned_dna_short_read <- avtable("aligned_dna_short_read", namespace=namespace,
 # Fraction of non-missing values in each column
 
 ```{r}
-completeness <- function(t) {
+completeness <- function(table_name) {
+    t <- get(table_name)
     t[t == "NA"] <- NA
     t %>%
         group_by(gregor_center) %>%
         summarise_all(function(x) round(100*sum(!is.na(x))/n())) %>%
         pivot_longer(-gregor_center, names_to="field", values_to="completeness") %>%
-        pivot_wider(names_from=gregor_center, values_from=completeness)
+        mutate(required=(field %in% attr(model[[table_name]], "required"))) %>%
+        pivot_wider(names_from=gregor_center, values_from=completeness) %>%
+        arrange(desc(required))
 }
 ```
 
 ```{r}
-completeness(participant)
+completeness("participant")
 ```
 
 ```{r}
-completeness(phenotype)
+completeness("phenotype")
 ```
 
 ```{r}
-completeness(analyte)
+completeness("analyte")
 ```
 
 ```{r}
-completeness(experiment_dna_short_read)
+completeness("experiment_dna_short_read")
 ```
 
 ```{r}
-completeness(experiment_dna_short_read)
+completeness("experiment_dna_short_read")
 ```
 
 # HPO terms
