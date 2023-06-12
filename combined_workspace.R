@@ -5,11 +5,11 @@ library(readr)
 library(lubridate)
 library(jsonlite)
 
-options("GCLOUD_SDK_PATH"="~/Applications/google-cloud-sdk") # don't run in AnVIL workspace
+#options("GCLOUD_SDK_PATH"="~/Applications/google-cloud-sdk") # don't run in AnVIL workspace
 centers <- c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR")
 center=rep(centers, times=c(rep(1,4),2))
 consent=c(rep("GRU", 5), "HMB")
-release <- "U2"
+release <- "U02"
 workspaces <- paste("AnVIL_GREGoR", center, release, consent, sep="_")
 namespace <- "anvil-datastorage"
 combined_workspace <- paste0("GREGOR_COMBINED_CONSORTIUM_", release)
