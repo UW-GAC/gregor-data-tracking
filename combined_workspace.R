@@ -60,6 +60,7 @@ combine_tables <- function(table_name) {
 }
 
 table_names <- names(model)
+  
 table_list <- list()
 for (t in table_names) {
     dat <- combine_tables(t)
@@ -69,13 +70,16 @@ for (t in table_names) {
     # make sure primary key is still unique
     stopifnot(sum(duplicated(dat[[t]])) == 0)
     
-    tmpfile <- tempfile()
-    write_tsv(dat, tmpfile)
-    bucket <- avbucket(namespace=combined_namespace, name=combined_workspace)
-    outfile <- paste0(bucket, "/data_tables/", t, ".tsv")
-    gsutil_cp(tmpfile, outfile)
-    unlink(tmpfile)
-    table_list[[t]] <- outfile
+    # only proceed if we have any data for this table
+    if (nrow(dat) > 0) {
+      tmpfile <- tempfile()
+      write_tsv(dat, tmpfile)
+      bucket <- avbucket(namespace=combined_namespace, name=combined_workspace)
+      outfile <- paste0(bucket, "/data_tables/", t, ".tsv")
+      gsutil_cp(tmpfile, outfile)
+      unlink(tmpfile)
+      table_list[[t]] <- outfile
+    }
 }
 
 json <- list("validate_data_model.table_files" = table_list,
