@@ -62,6 +62,8 @@ combine_tables <- function(table_name) {
 table_names <- names(model)
   
 table_list <- list()
+experiment_tables <- list()
+bucket <- avbucket(namespace=combined_namespace, name=combined_workspace)
 for (t in table_names) {
     dat <- combine_tables(t)
     if (grepl("_set$", t)) {
@@ -74,13 +76,37 @@ for (t in table_names) {
     if (nrow(dat) > 0) {
       tmpfile <- tempfile()
       write_tsv(dat, tmpfile)
-      bucket <- avbucket(namespace=combined_namespace, name=combined_workspace)
       outfile <- paste0(bucket, "/data_tables/", t, ".tsv")
       gsutil_cp(tmpfile, outfile)
       unlink(tmpfile)
       table_list[[t]] <- outfile
+      
+      # save tables to combine
+      if (t == "analyte") {
+        analyte <- dat
+      }
+      if (grepl("^experiment", t)) {
+        experiment_tables[[t]] <- dat
+      }
     }
 }
+
+# create experiment table
+experiment <- lapply(names(experiment_tables), function(t) {
+  experiment_tables[[t]] %>%
+    select(id_in_table = paste0(t, "_id"), analyte_id) %>%
+    left_join(analyte) %>%
+    select(id_in_table, participant_id) %>%
+    mutate(experiment_id = paste(t, id_in_table, sep="."),
+           table_name = t)
+}) %>% bind_rows()
+
+tmpfile <- tempfile()
+write_tsv(experiment, tmpfile)
+outfile <- paste0(bucket, "/data_tables/experiment.tsv")
+gsutil_cp(tmpfile, outfile)
+unlink(tmpfile)
+table_list[["experiment"]] <- outfile
 
 json <- list("validate_data_model.table_files" = table_list,
              "validate_data_model.model_url" = model_url,
