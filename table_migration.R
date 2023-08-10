@@ -40,5 +40,5 @@ for (i in seq_along(workspaces1)) {
                  "validate_gregor_model.check_md5" = "false",
                  "validate_gregor_model.check_vcf" = "false"
     ) %>% toJSON(pretty=TRUE, auto_unbox=TRUE, unbox=TRUE)
-    write(json, paste0(workspaces2[i], "_valildate_gregor_model.json"))
+    write(json, paste0(workspaces2[i], "_validate_gregor_model.json"))
 }
