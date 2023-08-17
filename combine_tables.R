@@ -20,7 +20,7 @@ conversion_function <- function(cm) {
   }
 }
 
-combine_tables <- function(table_name, model) {
+combine_tables <- function(table_name, model, workspaces, namespace) {
   #print(paste("table", table_name))
   lapply(workspaces, function(x) {
     #print(paste("workspace", x))

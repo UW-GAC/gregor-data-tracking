@@ -24,15 +24,16 @@ table_list <- list()
 experiment_tables <- list()
 bucket <- avbucket(namespace=combined_namespace, name=combined_workspace)
 for (t in table_names) {
-    dat <- combine_tables(t)
+    dat <- combine_tables(t, model, workspaces=workspaces, namespace=namespace)
     if (grepl("_set$", t)) {
         dat <- unnest_set_table(dat)
     }
-    # make sure primary key is still unique
-    stopifnot(sum(duplicated(dat[[t]])) == 0)
-    
     # only proceed if we have any data for this table
     if (nrow(dat) > 0) {
+      
+      # make sure primary key is still unique
+      stopifnot(sum(duplicated(dat[[t]])) == 0)
+    
       tmpfile <- tempfile()
       write_tsv(dat, tmpfile)
       outfile <- paste0(bucket, "/data_tables/", t, ".tsv")
