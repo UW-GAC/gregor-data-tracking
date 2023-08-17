@@ -1,14 +1,14 @@
 library(dplyr)
 library(jsonlite)
 
-workflow_inputs_json <- function(table_list, model_url, 
+workflow_inputs_json <- function(file_list, model_url, 
                           workspace, namespace,
                           import_tables = "true",
                           overwrite = "false",
                           check_md5 = "false",
                           check_vcf = "false") {
   
-  json <- list("validate_gregor_model.table_files" = table_list,
+  json <- list("validate_gregor_model.table_files" = file_list,
                "validate_gregor_model.model_url" = model_url,
                "validate_gregor_model.workspace_name" = workspace,
                "validate_gregor_model.workspace_namespace" = namespace,

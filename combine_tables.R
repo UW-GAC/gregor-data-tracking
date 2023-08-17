@@ -1,5 +1,6 @@
 library(AnVIL)
 library(dplyr)
+library(readr)
 library(lubridate)
 
 conversion_function <- function(cm) {
@@ -37,7 +38,7 @@ combine_tables <- function(table_name, model, workspaces, namespace) {
       }
       return(table)
     } else {
-      warning("table ", table_name, " not present in workspace ", x)
+      #warning("table ", table_name, " not present in workspace ", x)
       return(NULL)
     }
   }) %>% bind_rows()
@@ -45,14 +46,29 @@ combine_tables <- function(table_name, model, workspaces, namespace) {
 
 
 # create experiment table
-experiment_table <- function(experiment_tables) {
-  lapply(names(experiment_tables), function(t) {
-    experiment_tables[[t]] %>%
+experiment_table <- function(table_list) {
+  experiment_tables <- names(table_list)[grepl("^experiment", names(table_list))]
+  lapply(experiment_tables, function(t) {
+    table_list[[t]] %>%
       select(id_in_table = paste0(t, "_id"), analyte_id) %>%
-      left_join(analyte) %>%
+      left_join(table_list[["analyte"]]) %>%
       select(id_in_table, participant_id) %>%
       mutate(experiment_id = paste(t, id_in_table, sep="."),
              table_name = t)
   }) %>% bind_rows()
 }
 
+
+# write tables to tsv
+write_to_bucket <- function(table_list, bucket) {
+  file_list <- list()
+  for (t in names(table_list)) {
+    tmpfile <- tempfile()
+    write_tsv(table_list[[t]], tmpfile)
+    outfile <- paste0(bucket, "/data_tables/", t, ".tsv")
+    #gsutil_cp(tmpfile, outfile)
+    unlink(tmpfile)
+    file_list[[t]] <- outfile
+  }
+  return(file_list)
+}
