@@ -1,0 +1,56 @@
+---
+title: "Release QC"
+output: html_notebook
+---
+
+This document describes data dropped from the release for incompleteness.
+
+```{r}
+library(AnVIL)
+library(dplyr)
+```
+
+```{r}
+cycle <- "U03"
+release <- "R01"
+centers <- list(
+  GRU=c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR"),
+  HMB=c("BROAD", "UW_CRDR")
+)
+workspaces <- lapply(names(centers), function(consent) 
+  paste("AnVIL_GREGoR", centers[[consent]], cycle, consent, sep="_")
+)
+names(workspaces) <- names(centers)
+namespace <- "anvil-datastorage"
+combined_namespace <- namespace
+```
+
+```{r}
+source("release_qc.R")
+log_list <- list()
+for (consent in names(workspaces)) {
+  combined_workspace <- paste("AnVIL_GREGoR", release, consent, sep="_")
+  table_names <- avtables(namespace=namespace, name=combined_workspace)$table
+  release_table_list <- lapply(table_names, function(t) {
+    avtable(t, namespace=namespace, name=combined_workspace)
+  })
+  names(release_table_list) <- table_names
+  for (w in workspaces[[consent]]) {
+    table_names <- avtables(namespace=namespace, name=w)$table
+    table_list <- lapply(table_names, function(t) {
+      avtable(t, namespace=namespace, name=w)
+    })
+    names(table_list) <- table_names
+    
+    log <- release_qc_log(table_list, release_table_list)
+    if (length(log) > 0) log_list[[w]] <- log
+  }
+}
+```
+
+```{r}
+for (w in names(log_list)) {
+  writeLines(knitr::kable(log_list[[w]]), paste0(w, "_removed_rows.txt"))
+}
+```
+

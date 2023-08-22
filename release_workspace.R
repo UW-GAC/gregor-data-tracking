@@ -43,7 +43,9 @@ for (consent in names(workspaces)) {
   }
   
   # QC on tables for release
-  table_list <- release_qc(table_list)
+  table_list <- release_qc(table_list, logfile=paste0("release_qc_", consent, ".log"))
+}
+  
   
   # create experiment table
   table_list[["experiment"]] <- experiment_table(table_list)
