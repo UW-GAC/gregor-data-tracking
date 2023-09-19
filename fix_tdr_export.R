@@ -17,7 +17,7 @@ for (i in seq_along(workspaces)) {
   file_inventory <- avtable("file_inventory", namespace=namespace, name=workspaces[i]) %>%
     select(uri, file_ref)
   table_list <- list()
-  for (t in tables$table) {
+  for (t in setdiff(tables$table, "file_inventory")) {
     print(paste(workspaces[i], t))
     dat <- avtable(t, namespace=namespace, name=workspaces[i])
     
@@ -36,16 +36,12 @@ for (i in seq_along(workspaces)) {
     unlink(tmpfile)
     
     # fix primary keys after TDR export
-    if (t != "file_inventory") {
-      primary_key <- paste0(t, "_id")
-      old_key <- paste0("tdr:", primary_key)
-      stopifnot(all(dat[[primary_key]] == dat[["datarepo_row_id"]]))
-      dat2 <- dat %>%
-        select(-!!primary_key) %>%
-        rename(all_of(setNames(old_key, primary_key)))
-    } else {
-      dat2 <- dat
-    }
+    primary_key <- paste0(t, "_id")
+    old_key <- paste0("tdr:", primary_key)
+    stopifnot(all(dat[[primary_key]] == dat[["datarepo_row_id"]]))
+    dat2 <- dat %>%
+      select(-!!primary_key) %>%
+      rename(all_of(setNames(old_key, primary_key)))
     
     # drop extraneous columns
     dat2 <- dat2 %>%
