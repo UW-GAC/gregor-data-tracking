@@ -59,6 +59,27 @@ experiment_table <- function(table_list) {
 }
 
 
+# create aligned table
+aligned_table <- function(table_list) {
+  aligned_tables <- setdiff(
+    names(table_list)[grepl("^aligned", names(table_list))],
+    names(table_list)[grepl("_set$", names(table_list))]
+  )
+  lapply(aligned_tables, function(t) {
+    experiment_table <- sub("^aligned", "experiment", t)
+    experiment_id <- paste0(experiment_table, "_id")
+    table_list[[t]] %>%
+      select(id_in_table = paste0(t, "_id"), !!experiment_id) %>%
+      left_join(table_list[[experiment_table]]) %>%
+      select(id_in_table, !!experiment_id, analyte_id) %>%
+      left_join(table_list[["analyte"]]) %>%
+      select(id_in_table, participant_id) %>%
+      mutate(aligned_id = paste(t, id_in_table, sep="."),
+             table_name = t)
+  }) %>% bind_rows()
+}
+
+
 # write tables to tsv
 write_to_bucket <- function(table_list, bucket) {
   file_list <- list()
