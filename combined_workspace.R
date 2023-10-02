@@ -40,6 +40,7 @@ for (t in table_names) {
 
 # create experiment table
 table_list[["experiment"]] <- experiment_table(table_list)
+table_list[["aligned"]] <- aligned_table(table_list)
 
 # write tsv files to google bucket
 bucket <- avbucket(namespace=combined_namespace, name=combined_workspace)
