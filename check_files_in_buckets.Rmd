@@ -1,0 +1,235 @@
+---
+title: Check files in WORKSPACES
+author: Adrienne Stilp
+date: July 10, 2023
+editor_options: 
+  chunk_output_type: console
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r install_packages}
+install.packages(c(
+  #"tidyverse",
+  "kableExtra"
+))
+```
+
+```{r libraries}
+library(tools)
+library(AnVIL)
+library(tidyverse)
+library(knitr)
+```
+
+
+```{r constants}
+UPLOAD_CYCLE <- "U04"
+
+# We may be able to automatically get this list somehow.
+WORKSPACES_TO_KEEP <- c(
+  ### U02
+  "anvil-datastorage/AnVIL_GREGoR_GSS_U02_GRU",
+  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U02_GRU",
+  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U02_HMB",
+  "anvil-datastorage/AnVIL_GREGoR_BROAD_U02_GRU",
+  "anvil-datastorage/AnVIL_GREGoR_BCM_U02_GRU",
+  "anvil-datastorage/AnVIL_GREGoR_CNH_I_U02_GRU",
+  ### U03
+  "anvil-datastorage/AnVIL_GREGoR_GSS_U03_GRU",
+  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U03_GRU",
+  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U03_HMB",
+  "anvil-datastorage/AnVIL_GREGoR_BROAD_U03_GRU",
+  "anvil-datastorage/AnVIL_GREGoR_BCM_U03_GRU",
+  "anvil-datastorage/AnVIL_GREGoR_CNH_I_U03_GRU",
+  ### U04
+  "anvil-datastorage/AnVIL_GREGoR_GSS_U04_GRU",
+  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U04_GRU",
+  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U04_HMB",
+  "anvil-datastorage/AnVIL_GREGoR_BROAD_U04_GRU",
+  "anvil-datastorage/AnVIL_GREGoR_BROAD_U04_HMB",
+  "anvil-datastorage/AnVIL_GREGoR_BCM_U04_GRU",
+  "anvil-datastorage/AnVIL_GREGoR_CNH_I_U04_GRU"
+)
+```
+
+# Look up bucket for each workspace.
+
+```{r}
+WORKSPACES <- avworkspaces() %>%
+  mutate(workspace=file.path(namespace, name)) %>%
+  filter(workspace %in% WORKSPACES_TO_KEEP) %>%
+  # Extract upload_cycle
+  mutate(
+    upload_cycle = str_extract(workspace, "_(U\\d+)", group=1)
+  ) %>%
+  # Add bucket path using avbucket
+  rowwise() %>%
+  mutate(
+    path = avbucket(namespace=namespace, name=name)
+  ) %>%
+  select(workspace, namespace, name, upload_cycle, path)
+WORKSPACES %>% select(workspace, upload_cycle, path) %>% kable()
+```
+
+# Pull out data tables from each workspace
+
+```{r get_data_tables}
+table_list <- list()
+for (i in seq_along(WORKSPACES$workspace)) {
+  workspace <- WORKSPACES$workspace[i]
+  namespace <- WORKSPACES$namespace[i]
+  name <- WORKSPACES$name[i]
+  # Create a list for storing the tables.
+  table_list[[workspace]] <- list()
+  tables <- avtables(namespace=namespace, name=name)
+  tmp_list <- list()
+  for (table in tables$table) {
+    tmp <- avtable(table, namespace=namespace, name=name) %>%
+      # Only keep character type columns.
+      select(where(is.character)) %>%
+      # Add row numbers to have a key for the column.
+      mutate(rownum=row_number()) %>%
+      # Convert to long format.
+      pivot_longer(!rownum, names_to="column", values_to="file") %>%
+      # Only keep records where the value is gs.
+      filter(str_detect(file, "^gs://")) %>%
+      # no need to keep multiple rows with the same file
+      select(-rownum) %>%
+      distinct()
+    tmp_list[[table]] <- tmp
+    tmp <- bind_rows(tmp_list, .id="table")
+    table_list[[i]] <- tmp
+  }
+}
+table_data <- bind_rows(table_list, .id="referencing_workspace")
+table_data %>% group_by(referencing_workspace) %>% count() %>% kable()
+```
+
+# Check files in all buckets
+
+```{r get_files}
+file_list <- list()
+for (i in seq_along(WORKSPACES$workspace)) {
+  bucket <- WORKSPACES$path[i]
+  workspace <- WORKSPACES$workspace[i]
+  
+  top_level <- gsutil_ls(bucket, recursive=FALSE)
+  subdirs <- top_level[str_detect(top_level, "/$")]
+  # Don't check the notebooks and submissions directories.
+  subdirs <- subdirs[!str_detect(subdirs, "notebooks|submissions")]
+  # Using the ** makes the gsutil_ls command a lot faster.
+  sub_levels <- lapply(subdirs, function(f) gsutil_ls(paste0(f, "**"), recursive=TRUE))
+  tmp <- tibble(file=c(top_level, unlist(sub_levels)))
+  
+  file_list[[workspace]] <- tmp
+}
+
+file_data <- bind_rows(file_list, .id="workspace")
+file_data %>% group_by(workspace) %>% count() %>% kable()
+```
+
+## Check if each file is referenced in a data table in any workspace
+
+```{r}
+tmp <- file_data %>%
+  # Which tables are the files referenced in?
+  left_join(table_data, by = "file") %>%
+  # Which upload cycle are those WORKSPACES?
+  left_join(WORKSPACES %>% select(workspace, upload_cycle), by=c("referencing_workspace"="workspace")) %>%
+  select(workspace, file, referencing_workspace, upload_cycle) %>%
+  arrange(workspace, file, upload_cycle, referencing_workspace)
+```
+
+```{r}
+x <- tmp %>% 
+  group_by(workspace, file) %>%
+  summarise(
+    n_workspaces=length(unique(na.omit(referencing_workspace))),
+    n_upload_cycles=length(unique(na.omit(upload_cycle))),
+    upload_cycles=paste(sort(unique(upload_cycle)), collapse=", "),
+  ) %>%
+  ungroup() %>%
+  arrange(upload_cycles) %>%
+  mutate(filetype = file_ext(file)) %>%
+  filter(filetype != "") %>% # remove directories
+  mutate(center=str_match(workspace, "anvil-datastorage/AnVIL_GREGoR_([A-Z_]+?)_U")[,2])
+
+x0 <- x %>%
+  filter(n_workspaces == 0) %>%
+  select(-n_workspaces, -n_upload_cycles, -upload_cycles)
+```
+
+## Summary of files not referenced in any workspace by file type
+
+```{r}
+x0 %>%
+  group_by(filetype, workspace) %>%
+  count() %>%
+  kable()
+```
+
+## List of files not referenced in any workspace by type {.tabset}
+
+```{r, results="asis"}
+for (category in unique(x$filetype)) {
+  cat(sprintf("\n\n### %s\n\n", category))
+    
+  x0 %>%
+    filter(filetype == !! category) %>%
+    select(filetype, center, workspace, file, everything()) %>%
+    arrange(filetype, center, workspace, file) %>%
+    kable() %>%
+    print()
+}
+```
+
+## List of files not referenced in any workspace by RC {.tabset}
+
+```{r, results="asis"}
+for (category in unique(x$center)) {
+  cat(sprintf("\n\n### %s\n\n", category))
+    
+  x0 %>%
+    filter(center == !! category) %>%
+    select(filetype, center, workspace, file, everything()) %>%
+    arrange(filetype, center, workspace, file) %>%
+    kable() %>%
+    print()
+}
+```
+
+## Save the list of files not referenced anywhere
+
+```{r}
+uri <- paste0(avbucket(), "/", UPLOAD_CYCLE, "_QC")
+outfile <- paste(UPLOAD_CYCLE, "files_not_referenced_in_data_tables.tsv", sep="_")
+write_tsv(x0, outfile)
+# Copy to bucket
+gsutil_cp(outfile, file.path(uri, outfile))
+```
+
+## Save a list of bam/cram/index files per RC
+
+```{r}
+for (category in unique(x0$center)) {
+  outfile <- paste(category, UPLOAD_CYCLE, "files_not_referenced_in_data_tables.tsv", sep="_")
+  x0_out <- x0 %>%
+    filter(center == !! category) %>%
+    filter(filetype %in% c("bam", "bai", "cram", "crai")) %>%
+    arrange(workspace, file, filetype)
+  if (nrow(x0_out) > 0) {
+    write_tsv(x0_out, outfile)
+    gsutil_cp(outfile, file.path(uri, outfile))
+    # copy to workspaces so RCs can access
+    rc_uri <- avbucket(namespace="anvil-datastorage", 
+                       name=paste("AnVIL_GREGoR", category, UPLOAD_CYCLE, "GRU", sep="_"))
+    gsutil_cp(outfile, file.path(rc_uri, "post_upload_qc", outfile))
+  }
+}
+```
+
+
+
