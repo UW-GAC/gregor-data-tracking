@@ -2,7 +2,11 @@ library(dplyr)
 library(readr)
 
 # remove rows from a set of tables for release
-release_qc <- function(table_list) {
+# if cascading=FALSE, removal always references the original set of data
+# tables, so e.g. an analyte will not be removed if its participant is removed
+# this option is to be used for post-upload QC reports, not release
+release_qc <- function(table_list, cascading=TRUE) {
+  orig_table_list <- table_list
   types <- sub("experiment_", "", 
                names(table_list)[grepl("^experiment_", names(table_list))])
   
@@ -18,7 +22,8 @@ release_qc <- function(table_list) {
   
   # only analytes that have an experiment (either DNA or RNA)
   analytes_ref <- lapply(types, function(t) {
-    table_list[[paste0("experiment_", t)]][["analyte_id"]]
+    ref_table_list <- if (cascading) table_list else orig_table_list
+    ref_table_list[[paste0("experiment_", t)]][["analyte_id"]]
   }) %>%
     unlist() %>%
     unique()
@@ -26,8 +31,9 @@ release_qc <- function(table_list) {
     filter(analyte_id %in% analytes_ref)
   
   # only participants who either have an analyte or are related to someone with an analyte
-  participants_ref <- table_list[["analyte"]][["participant_id"]]
-  families_ref <- table_list[["participant"]] %>%
+  ref_table_list <- if (cascading) table_list else orig_table_list
+  participants_ref <- ref_table_list[["analyte"]][["participant_id"]]
+  families_ref <- ref_table_list[["participant"]] %>%
     filter(participant_id %in% participants_ref) %>%
     select(family_id) %>%
     unlist()
@@ -35,12 +41,14 @@ release_qc <- function(table_list) {
     filter(participant_id %in% participants_ref | family_id %in% families_ref)
   
   # only families with participants
+  ref_table_list <- if (cascading) table_list else orig_table_list
   table_list[["family"]] <- table_list[["family"]] %>%
-    filter(family_id %in% table_list[["participant"]][["family_id"]])
+    filter(family_id %in% ref_table_list[["participant"]][["family_id"]])
   
   # only phenotypes with participants
+  ref_table_list <- if (cascading) table_list else orig_table_list
   table_list[["phenotype"]] <- table_list[["phenotype"]] %>%
-    filter(participant_id %in% table_list[["participant"]][["participant_id"]])
+    filter(participant_id %in% ref_table_list[["participant"]][["participant_id"]])
   
   return(table_list)
 }

@@ -17,7 +17,7 @@ namespace <- "anvil-datastorage"
 model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 
 for (w in workspaces) {
-  print(w)
+  message(w)
   tables <- avtables(namespace=namespace, name=w)
   table_names <- tables$table
   
@@ -34,6 +34,7 @@ for (w in workspaces) {
     }
   }
   
+  message("generating validation report")
   table_files <- sapply(table_list, function(x) {
     outfile <- tempfile()
     write_tsv(x, file=outfile)
@@ -43,13 +44,17 @@ for (w in workspaces) {
   report_file <- paste0(w, "_validation")
   custom_render_markdown("data_model_report", report_file, parameters=params)
   unlink(table_files)
+  
+  message("copying validation file")
   out_dir <- paste0(avbucket(namespace=namespace, name=w), "/post_upload_qc/")
   gsutil_cp(paste0(report_file, ".html"), out_dir)
   
   # QC on tables
-  qc_table_list <- release_qc(table_list)
+  message("generating QC report")
+  qc_table_list <- release_qc(table_list, cascading=FALSE)
   log <- release_qc_log(table_list, qc_table_list)
   report_file <- paste0(w, "_post_upload_qc.txt")
+  message("copying QC file")
   writeLines(knitr::kable(log), report_file)
   gsutil_cp(report_file, out_dir)
 }
