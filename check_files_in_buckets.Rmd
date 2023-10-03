@@ -95,14 +95,13 @@ for (i in seq_along(WORKSPACES$workspace)) {
       # Convert to long format.
       pivot_longer(!rownum, names_to="column", values_to="file") %>%
       # Only keep records where the value is gs.
-      filter(str_detect(file, "^gs://"))
-    # if (nrow(tmp) > 0) {
-       tmp_list[[table]] <- tmp
-    # }
+      filter(str_detect(file, "^gs://")) %>%
+      # no need to keep multiple rows with the same file
+      select(-rownum) %>%
+      distinct()
+    tmp_list[[table]] <- tmp
     tmp <- bind_rows(tmp_list, .id="table")
-    # if (nrow(tmp) > 0) {
-      table_list[[i]] <- tmp
-    # }
+    table_list[[i]] <- tmp
   }
 }
 table_data <- bind_rows(table_list, .id="referencing_workspace")
@@ -116,12 +115,15 @@ file_list <- list()
 for (i in seq_along(WORKSPACES$workspace)) {
   bucket <- WORKSPACES$path[i]
   workspace <- WORKSPACES$workspace[i]
-
+  
+  top_level <- gsutil_ls(bucket, recursive=FALSE)
+  subdirs <- top_level[str_detect(top_level, "/$")]
+  # Don't check the notebooks and submissions directories.
+  subdirs <- subdirs[!str_detect(subdirs, "notebooks|submissions")]
   # Using the ** makes the gsutil_ls command a lot faster.
-  tmp <- tibble(file=gsutil_ls(file.path(bucket, "**"), recursive=TRUE)) %>%
-    # Remove files in the notebooks and submissions directories.
-    filter(!str_detect(file, "notebooks|submissions"))
-
+  sub_levels <- lapply(subdirs, function(f) gsutil_ls(paste0(f, "**"), recursive=TRUE))
+  tmp <- tibble(file=c(top_level, unlist(sub_levels)))
+  
   file_list[[workspace]] <- tmp
 }
 
