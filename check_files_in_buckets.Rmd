@@ -154,14 +154,18 @@ x <- tmp %>%
   ungroup() %>%
   arrange(upload_cycles) %>%
   mutate(filetype = file_ext(file)) %>%
+  filter(filetype != "") %>% # remove directories
   mutate(center=str_match(workspace, "anvil-datastorage/AnVIL_GREGoR_([A-Z_]+?)_U")[,2])
+
+x0 <- x %>%
+  filter(n_workspaces == 0) %>%
+  select(-n_workspaces, -n_upload_cycles, -upload_cycles)
 ```
 
 ## Summary of files not referenced in any workspace by file type
 
 ```{r}
-x %>%
-  filter(n_workspaces == 0) %>%
+x0 %>%
   group_by(filetype, workspace) %>%
   count() %>%
   kable()
@@ -173,8 +177,7 @@ x %>%
 for (category in unique(x$filetype)) {
   cat(sprintf("\n\n### %s\n\n", category))
     
-  x %>%
-    filter(n_workspaces == 0) %>%
+  x0 %>%
     filter(filetype == !! category) %>%
     select(filetype, center, workspace, file, everything()) %>%
     arrange(filetype, center, workspace, file) %>%
@@ -189,8 +192,7 @@ for (category in unique(x$filetype)) {
 for (category in unique(x$center)) {
   cat(sprintf("\n\n### %s\n\n", category))
     
-  x %>%
-    filter(n_workspaces == 0) %>%
+  x0 %>%
     filter(center == !! category) %>%
     select(filetype, center, workspace, file, everything()) %>%
     arrange(filetype, center, workspace, file) %>%
@@ -198,12 +200,36 @@ for (category in unique(x$center)) {
     print()
 }
 ```
+
 ## Save the list of files not referenced anywhere
 
 ```{r}
-uri <- avbucket()
-outfile <- "files_not_referenced_in_data_tables.tsv"
-write_tsv(x %>% filter(n_workspaces==0), outfile)
+uri <- paste0(avbucket(), "/", UPLOAD_CYCLE, "_QC")
+outfile <- paste(UPLOAD_CYCLE, "files_not_referenced_in_data_tables.tsv", sep="_")
+write_tsv(x0, outfile)
 # Copy to bucket
 gsutil_cp(outfile, file.path(uri, outfile))
 ```
+
+## Save a list of bam/cram/index files per RC
+
+```{r}
+for (category in unique(x0$center)) {
+  outfile <- paste(category, UPLOAD_CYCLE, "files_not_referenced_in_data_tables.tsv", sep="_")
+  x0_out <- x0 %>%
+    filter(center == !! category) %>%
+    filter(filetype %in% c("bam", "bai", "cram", "crai")) %>%
+    arrange(workspace, file, filetype)
+  if (nrow(x0_out) > 0) {
+    write_tsv(x0_out, outfile)
+    gsutil_cp(outfile, file.path(uri, outfile))
+    # copy to workspaces so RCs can access
+    rc_uri <- avbucket(namespace="anvil-datastorage", 
+                       name=paste("AnVIL_GREGoR", category, UPLOAD_CYCLE, "GRU", sep="_"))
+    gsutil_cp(outfile, file.path(rc_uri, "post_upload_qc", outfile))
+  }
+}
+```
+
+
+
