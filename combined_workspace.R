@@ -4,7 +4,7 @@ library(dplyr)
 source("combine_tables.R")
 source("workflow_inputs_json.R")
 
-cycle <- "U03"
+cycle <- "U04"
 centers <- list(
   GRU=c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
@@ -38,7 +38,7 @@ for (t in table_names) {
   }
 }
 
-# create experiment table
+# create experiment and aligned tables
 table_list[["experiment"]] <- experiment_table(table_list)
 table_list[["aligned"]] <- aligned_table(table_list)
 

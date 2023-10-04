@@ -4,13 +4,16 @@ library(dplyr)
 library(readr)
 source("workflow_inputs_json.R")
 
-centers <- c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR")
-center <- rep(centers, times=c(rep(1,3),rep(2,2)))
-consent <- c(rep("GRU", 3), rep(c("GRU", "HMB"), 2))
-release1 <- "U03"
-release2 <- "U04"
-workspaces1 <- paste("AnVIL_GREGoR", center, release1, consent, sep="_")
-workspaces2 <- paste("AnVIL_GREGoR", center, release2, consent, sep="_")
+cycle1 <- "U04"
+cycle2 <- "U05"
+centers <- list(
+  GRU=c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR"),
+  HMB=c("BROAD", "UW_CRDR")
+)
+workspaces1 <- lapply(names(centers), function(consent) 
+  paste("AnVIL_GREGoR", centers[[consent]], cycle1, consent, sep="_")
+) %>% unlist() %>% sort()
+workspaces2 <- sub(cycle1, cycle2, workspaces1)
 namespace <- "anvil-datastorage"
 
 model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
