@@ -69,11 +69,15 @@ aligned_table <- function(table_list) {
     experiment_table <- sub("^aligned", "experiment", t)
     experiment_id <- paste0(experiment_table, "_id")
     table_list[[t]] %>%
-      select(id_in_table = paste0(t, "_id"), !!experiment_id) %>%
+      select(id_in_table = paste0(t, "_id"), !!experiment_id,
+             aligned_file = paste0(t, "_file"),
+             aligned_index_file = paste0(t, "_index_file")) %>%
       left_join(table_list[[experiment_table]]) %>%
-      select(id_in_table, !!experiment_id, analyte_id) %>%
+      select(id_in_table, !!experiment_id, analyte_id,
+             aligned_file, aligned_index_file) %>%
       left_join(table_list[["analyte"]]) %>%
-      select(id_in_table, participant_id) %>%
+      select(id_in_table, participant_id, 
+             aligned_file, aligned_index_file) %>%
       mutate(aligned_id = paste(t, id_in_table, sep="."),
              table_name = t)
   }) %>% bind_rows()
