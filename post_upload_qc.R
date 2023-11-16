@@ -47,7 +47,9 @@ for (w in workspaces) {
   
   message("copying validation file")
   out_dir <- paste0(avbucket(namespace=namespace, name=w), "/post_upload_qc/")
+  this_dir <- paste0(avbucket(), "/", cycle, "_QC/")
   gsutil_cp(paste0(report_file, ".html"), out_dir)
+  gsutil_cp(paste0(report_file, ".html"), this_dir)
   
   # QC on tables
   message("generating QC report")
@@ -57,4 +59,5 @@ for (w in workspaces) {
   message("copying QC file")
   writeLines(knitr::kable(log), report_file)
   gsutil_cp(report_file, out_dir)
+  gsutil_cp(report_file, this_dir)
 }
