@@ -22,6 +22,8 @@ for (i in seq_along(workspaces1)) {
   for (t in tables_to_check) {
     table1 <- avtable(t, namespace=namespace, name=workspaces1[i])
     table2 <- avtable(t, namespace=namespace, name=workspaces2[i])
+    #fixme <- "within_site_batch_name"
+    #if (fixme %in% names(table1)) table1[[fixme]] <- as.character(table1[[fixme]])
     
     entity_id <- paste0(t, "_id")
     dat <- semi_join(table2, table1, by=entity_id) # rows in table2 also in table1
@@ -35,43 +37,38 @@ for (i in seq_along(workspaces1)) {
     for (c in setdiff(names(table1), entity_id)) {
       col1 <- paste(c, cycle1, sep=".")
       col2 <- paste(c, cycle2, sep=".")
-      prob1 <- dat[is.na(dat[[col1]]) != is.na(dat[[col2]]), c(entity_id, col1, col2)]
+      # problem if data was previously supplied and now missing, not a problem if new data was added
+      prob1 <- dat[!is.na(dat[[col1]]) & is.na(dat[[col2]]), c(entity_id, col1, col2)]
       prob2 <- dat[!is.na(dat[[col1]]) & !is.na(dat[[col2]]) & dat[[col1]] != dat[[col2]], c(entity_id, col1, col2)]
       dat2 <- rbind(prob1, prob2)
       if (nrow(dat2) > 0) diff_list[[c]] <- dat2
     }
-    ids <- unique(unlist(lapply(diff_list, function(x) x[[entity_id]])))
-    id_list <- list()
-    for (id in ids) {
-      id_tbl <- tibble(id)
-      names(id_tbl) <- entity_id
-      for (x in diff_list) {
-        tmp <- x[x[[entity_id]] == id,]
-        if (nrow(tmp) > 0) {
-          id_tbl <- left_join(id_tbl, tmp, by=entity_id)
-        }
-      }
-      id_list[[id]] <- id_tbl
-    }
-    
-    col_sets <- lapply(id_list, names)
-    col_list <- list()
+    if (length(diff_list) == 0) next
+    id_list <- lapply(diff_list, function(x) x[[entity_id]])
+    combined_diff_list <- list()
     index <- 1
-    for (cols in unique(col_sets)) {
-      tmp_list <- list()
-      j <- 1
-      for (x in id_list) {
-        if (setequal(unlist(cols), names(x))) {
-          tmp_list[[j]] <- x
-          j <- j+1
+    for (ids in unique(id_list)) {
+        id_tbl <- tibble(id=ids)
+        names(id_tbl) <- entity_id
+        for (x in diff_list) {
+          if (setequal(x[[entity_id]], ids)) {
+            id_tbl <- left_join(id_tbl, x, by=entity_id)
+          }
         }
-      }
-      col_list[[index]] <- bind_rows(tmp_list)
-      index <- index+1
+        combined_diff_list[[index]] <- id_tbl
+        index <- index + 1
     }
     
-    outfile <- paste0(workspaces1[i], "_diff_", cycle2, "_", t, ".txt")
-    writeLines(knitr::kable(col_list), outfile)
+    diff_sum <- sapply(diff_list, nrow)
+    diff_sum <- tibble(column=names(diff_sum), n_differences=diff_sum) %>%
+      arrange(desc(n_differences))
+    
+    outfile <- paste0(workspaces1[i], "_diff_", cycle2, "_", t, "_v2.txt")
+    con <- file(outfile, open="w")
+    writeLines(knitr::kable(diff_sum), con)
+    writeLines("\n\n", con)
+    writeLines(knitr::kable(combined_diff_list), con)
+    close(con)
     gsutil_cp(outfile, paste0(avbucket(), "/", cycle2, "_QC/"))
     #gsutil_cp(outfile, paste0(avbucket(namespace=namespace, name=workspaces2[i]), "/post_upload_qc/"))
   }
