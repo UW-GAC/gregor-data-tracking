@@ -14,6 +14,8 @@ workspaces1 <- lapply(names(centers), function(consent)
 workspaces2 <- sub(cycle1, cycle2, workspaces1)
 namespace <- "anvil-datastorage"
 
+combined_bucket <- avbucket(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", cycle))
+
 for (i in seq_along(workspaces1)) {
   message(workspaces1[i])
   tables <- avtables(namespace=namespace, name=workspaces1[i])
@@ -70,13 +72,13 @@ for (i in seq_along(workspaces1)) {
     # print differences for each table
     outfile <- paste0(workspaces1[i], "_diff_", cycle2, "_", t, ".txt")
     writeLines(knitr::kable(combined_diff_list), outfile)
-    gsutil_cp(outfile, paste0(avbucket(), "/", cycle2, "_QC/"))
+    gsutil_cp(outfile, paste0(combined_bucket, "/", cycle2, "_QC/"))
     gsutil_cp(outfile, paste0(avbucket(namespace=namespace, name=workspaces2[i]), "/post_upload_qc/"))
   }
   
   # print summary
   outfile <- paste0(workspaces1[i], "_diff_", cycle2, "_summary.txt")
   writeLines(knitr::kable(summary_list), outfile)
-  gsutil_cp(outfile, paste0(avbucket(), "/", cycle2, "_QC/"))
+  gsutil_cp(outfile, paste0(combined_bucket, "/", cycle2, "_QC/"))
   gsutil_cp(outfile, paste0(avbucket(namespace=namespace, name=workspaces2[i]), "/post_upload_qc/"))
 }

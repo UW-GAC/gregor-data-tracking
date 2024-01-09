@@ -14,6 +14,8 @@ workspaces <- lapply(names(centers), function(consent)
 ) %>% unlist() %>% sort()
 namespace <- "anvil-datastorage"
 
+combined_bucket <- avbucket(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", cycle))
+
 model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 
 for (w in workspaces) {
@@ -47,9 +49,9 @@ for (w in workspaces) {
   
   message("copying validation file")
   out_dir <- paste0(avbucket(namespace=namespace, name=w), "/post_upload_qc/")
-  this_dir <- paste0(avbucket(), "/", cycle, "_QC/")
+  combined_dir <- paste0(combined_bucket, "/", cycle, "_QC/")
   gsutil_cp(paste0(report_file, ".html"), out_dir)
-  gsutil_cp(paste0(report_file, ".html"), this_dir)
+  gsutil_cp(paste0(report_file, ".html"), combined_dir)
   
   # QC on tables
   message("generating QC report")
@@ -59,5 +61,5 @@ for (w in workspaces) {
   message("copying QC file")
   writeLines(knitr::kable(log), report_file)
   gsutil_cp(report_file, out_dir)
-  gsutil_cp(report_file, this_dir)
+  gsutil_cp(report_file, combined_dir)
 }

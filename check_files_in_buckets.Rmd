@@ -212,7 +212,8 @@ for (category in unique(x$center)) {
 ## Save the list of files not referenced anywhere
 
 ```{r}
-uri <- paste0(avbucket(), "/", UPLOAD_CYCLE, "_QC")
+combined_bucket <- avbucket(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", cycle))
+uri <- paste0(combined_bucket, "/", UPLOAD_CYCLE, "_QC")
 outfile <- paste(UPLOAD_CYCLE, "files_not_referenced_in_data_tables.tsv", sep="_")
 write_tsv(x0, outfile)
 # Copy to bucket
