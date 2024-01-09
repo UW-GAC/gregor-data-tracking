@@ -4,7 +4,7 @@ library(dplyr)
 library(readr)
 source("release_qc.R")
 
-cycle <- "U04"
+cycle <- "U05"
 centers <- list(
   GRU=c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")

@@ -2,8 +2,8 @@ library(AnVIL)
 library(dplyr)
 library(readr)
 
-cycle1 <- "U03"
-cycle2 <- "U04"
+cycle1 <- "U04"
+cycle2 <- "U05"
 centers <- list(
   GRU=c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
@@ -17,13 +17,13 @@ namespace <- "anvil-datastorage"
 for (i in seq_along(workspaces1)) {
   message(workspaces1[i])
   tables <- avtables(namespace=namespace, name=workspaces1[i])
-  tables_to_check <- tables$table[!(grepl("_set$", tables$table))]
+  tables_to_check <- setdiff(tables$table[!(grepl("_set$", tables$table))], "genetic_findings")
   summary_list <- list()
   for (t in tables_to_check) {
     table1 <- avtable(t, namespace=namespace, name=workspaces1[i])
     table2 <- avtable(t, namespace=namespace, name=workspaces2[i])
-    #fixme <- "within_site_batch_name"
-    #if (fixme %in% names(table1)) table1[[fixme]] <- as.character(table1[[fixme]])
+    fixme <- "chrom"
+    if (fixme %in% names(table1)) table1[[fixme]] <- as.character(table1[[fixme]])
     
     entity_id <- paste0(t, "_id")
     dat <- semi_join(table2, table1, by=entity_id) # rows in table2 also in table1
@@ -68,7 +68,7 @@ for (i in seq_along(workspaces1)) {
     }
     
     # print differences for each table
-    outfile <- paste0(workspaces1[i], "_diff_", cycle2, "_", t, "_v2.txt")
+    outfile <- paste0(workspaces1[i], "_diff_", cycle2, "_", t, ".txt")
     writeLines(knitr::kable(combined_diff_list), outfile)
     gsutil_cp(outfile, paste0(avbucket(), "/", cycle2, "_QC/"))
     gsutil_cp(outfile, paste0(avbucket(namespace=namespace, name=workspaces2[i]), "/post_upload_qc/"))
