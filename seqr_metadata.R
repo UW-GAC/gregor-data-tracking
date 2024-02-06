@@ -102,7 +102,18 @@ seqr <- participant %>%
 stopifnot(all(names(seqr) %in% metadata_columns))
 stopifnot(nrow(seqr) == nrow(participant))
 
+# subset to only participants present in COMBINED_U05 workspace
+# (to remove QC failures)
+
+U05_participants <- avtable("participant", 
+                            namespace=NAMESPACE,
+                            name="GREGOR_COMBINED_CONSORTIUM_U05")
+seqr <- seqr %>%
+  filter(`Individual ID` %in% U05_participants$participant_id)
+
+
 write_tsv(seqr, paste0(WORKSPACE, "_seqr_metadata.tsv"))
+gsutil_cp(paste0(WORKSPACE, "_seqr_metadata.tsv"), avbucket())
 
 
 ### don't use this; too many duplicate values
