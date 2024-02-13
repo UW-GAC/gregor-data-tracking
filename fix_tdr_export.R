@@ -4,17 +4,31 @@ library(tidyr)
 library(readr)
 source("workflow_inputs_json.R")
 
+# first: delete "workspace_attributes" table
+
 release <- "RELEASE_01"
 consent <- c("GRU", "HMB")
 workspaces <- paste("AnVIL_GREGoR", release, consent, sep="_")
 namespace <- "anvil-datastorage"
 
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
+# U03 was validated with data model v1.2
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/d7374588351e3e9d75f55627fbb2f6f775c054b1/GREGoR_data_model.json"
+#model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
+
+write_original_table <- function(dat, table_name, bucket) {
+  tmpfile <- tempfile()
+  write_tsv(dat, tmpfile)
+  outfile <- paste0(bucket, "/TDR_exported_tables/", table_name, ".tsv")
+  gsutil_cp(tmpfile, outfile)
+  unlink(tmpfile)
+}
 
 for (i in seq_along(workspaces)) {
   bucket <- avbucket(namespace=namespace, name=workspaces[i])
   tables <- avtables(namespace=namespace, name=workspaces[i])
-  file_inventory <- avtable("file_inventory", namespace=namespace, name=workspaces[i]) %>%
+  file_inventory <- avtable("file_inventory", namespace=namespace, name=workspaces[i])
+  write_original_table(file_inventory, table_name="file_inventory", bucket=bucket)
+  file_inventory <- file_inventory %>%
     select(uri, file_ref)
   table_list <- list()
   for (t in setdiff(tables$table, "file_inventory")) {
@@ -29,11 +43,7 @@ for (i in seq_along(workspaces)) {
     }
     
     # save original version of table
-    tmpfile <- tempfile()
-    write_tsv(dat, tmpfile)
-    outfile <- paste0(bucket, "/TDR_exported_tables/", t, ".tsv")
-    gsutil_cp(tmpfile, outfile)
-    unlink(tmpfile)
+    write_original_table(dat, table_name=t, bucket=bucket)
     
     # fix primary keys after TDR export
     primary_key <- paste0(t, "_id")
@@ -47,21 +57,21 @@ for (i in seq_along(workspaces)) {
     dat2 <- dat2 %>%
       select(-starts_with("import:"), -any_of("ingest_provenance"))
     
-    # map drs to gs uri
-    for (col in names(dat2)[grepl("_file", names(dat2))]) {
-      if (any(!is.na(dat2[[col]]))) {
-        tmp <- left_join(dat2, file_inventory, by=setNames("file_ref", col))
-        if (any(!is.na(tmp[["uri"]]))) {
-          drs_col <- paste0(col, "_drs")
-          dat2 <- tmp %>%
-            rename(all_of(setNames(col, drs_col))) %>%
-            rename(all_of(setNames("uri", col)))
-        } else {
-          dat2 <- tmp %>%
-            select(-uri)
-        }
-      }
-    }
+    # # map drs to gs uri
+    # for (col in names(dat2)[grepl("_file", names(dat2))]) {
+    #   if (any(!is.na(dat2[[col]]))) {
+    #     tmp <- left_join(dat2, file_inventory, by=setNames("file_ref", col))
+    #     if (any(!is.na(tmp[["uri"]]))) {
+    #       drs_col <- paste0(col, "_drs")
+    #       dat2 <- tmp %>%
+    #         rename(all_of(setNames(col, drs_col))) %>%
+    #         rename(all_of(setNames("uri", col)))
+    #     } else {
+    #       dat2 <- tmp %>%
+    #         select(-uri)
+    #     }
+    #   }
+    # }
     
     # write new table to workspace
     tmpfile <- tempfile()
