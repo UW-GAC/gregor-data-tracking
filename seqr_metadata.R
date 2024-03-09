@@ -1,6 +1,9 @@
 # define data source
 NAMESPACE <- "gregor-dcc"
 WORKSPACE <- "GREGOR_COMBINED_CONSORTIUM_U03"
+VCF_MANIFEST <- "gs://fc-secure-0392c60d-b346-4e60-b5f1-602a9bbfb0e1/gregor_joint_callset_022824/sample_manifest_v2.tsv"
+OUTFILE <- "gregor_consortium_dataset_u03_seqr_metadata.tsv"
+BUCKET_DEST <- "gs://fc-secure-0392c60d-b346-4e60-b5f1-602a9bbfb0e1/gregor_joint_callset_022824/"
 
 metadata_columns <- c(
   "Family ID", 
@@ -102,18 +105,16 @@ seqr <- participant %>%
 stopifnot(all(names(seqr) %in% metadata_columns))
 stopifnot(nrow(seqr) == nrow(participant))
 
-# subset to only participants present in COMBINED_U05 workspace
-# (to remove QC failures)
+# subset to only participants present in joint callset
 
-U05_participants <- avtable("participant", 
-                            namespace=NAMESPACE,
-                            name="GREGOR_COMBINED_CONSORTIUM_U05")
+gsutil_cp(VCF_MANIFEST, ".")
+vcf_participants <- read_tsv(basename(VCF_MANIFEST))
+
 seqr <- seqr %>%
-  filter(`Individual ID` %in% U05_participants$participant_id)
+  filter(`Individual ID` %in% vcf_participants$participant_id)
 
-
-write_tsv(seqr, paste0(WORKSPACE, "_seqr_metadata.tsv"))
-gsutil_cp(paste0(WORKSPACE, "_seqr_metadata.tsv"), avbucket())
+write_tsv(seqr, OUTFILE)
+gsutil_cp(OUTFILE, BUCKET_DEST)
 
 
 ### don't use this; too many duplicate values
