@@ -1,0 +1,53 @@
+---
+title: "Compare differences between two tables"
+output: html_notebook
+---
+
+```{r}
+library(AnVIL)
+library(readr)
+source("compare_tables.R")
+```
+
+Define file paths and labels of the two tables to compare. 
+- table1 is the prior version of the tables
+- table2 is the new version; we're looking for rows dropped or changed compared to table1
+
+```{r}
+table1_files <-  list(
+    "participant" = "gs://fc-secure-862e3f4f-1e44-418f-a169-cdcb93e2ccef/U03_data_tables/AnVIL_GREGoR_BCM_U03_GRU_participant.tsv",
+    "family" = "gs://fc-secure-862e3f4f-1e44-418f-a169-cdcb93e2ccef/U03_data_tables/AnVIL_GREGoR_BCM_U03_GRU_family.tsv"
+)
+table1_prefix <- "U03"
+table2_files <-  list(
+      "participant" = "gs://fc-secure-83d797e3-0bd6-44f1-9c74-189d6b07b243/U05_data_tables/AnVIL_GREGoR_BCM_U05_GRU_participant.tsv",
+      "family" = "gs://fc-secure-83d797e3-0bd6-44f1-9c74-189d6b07b243/U05_data_tables/AnVIL_GREGoR_BCM_U05_GRU_family.tsv"
+)
+table2_prefix <- "U05"
+```
+
+```{r}
+read_bucket_table <- function(f) {
+  fl <- tempfile()
+  gsutil_cp(f, fl)
+  x <- read_tsv(fl)
+  unlink(fl)
+  return(x)
+}
+table1_list <- lapply(table1_files, read_bucket_table)
+table2_list <- lapply(table2_files, read_bucket_table)
+```
+
+
+```{r}
+table_comparison <- compare_tables(table1_list, table2_list, table1_prefix, table2_prefix)
+```
+
+```{r}
+knitr::kable(table_comparison$summary_list)
+```
+
+```{r}
+knitr::kable(table_comparison$table_diff_list)
+```
+
