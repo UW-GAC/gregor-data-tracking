@@ -1,7 +1,7 @@
 ---
 title: Check files in WORKSPACES
-author: Adrienne Stilp
-date: July 10, 2023
+author: DCC
+date: `r format(Sys.time(), "%d %B, %Y")`
 editor_options: 
   chunk_output_type: console
 output:
@@ -10,7 +10,7 @@ output:
     toc_depth: 2
 ---
 
-```{r install_packages}
+```{r install_packages, eval=FALSE}
 install.packages(c(
   #"tidyverse",
   "kableExtra"
@@ -26,41 +26,17 @@ library(knitr)
 
 
 ```{r constants}
-UPLOAD_CYCLE <- "U05"
+UPLOAD_CYCLE <- "U06"
+ALL_CYCLES <- paste0("U0", 2:6)
 
-# We may be able to automatically get this list somehow.
-WORKSPACES_TO_KEEP <- c(
-  ### U02
-  "anvil-datastorage/AnVIL_GREGoR_GSS_U02_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U02_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U02_HMB",
-  "anvil-datastorage/AnVIL_GREGoR_BROAD_U02_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_BCM_U02_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_CNH_I_U02_GRU",
-  ### U03
-  "anvil-datastorage/AnVIL_GREGoR_GSS_U03_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U03_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U03_HMB",
-  "anvil-datastorage/AnVIL_GREGoR_BROAD_U03_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_BCM_U03_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_CNH_I_U03_GRU",
-  ### U04
-  "anvil-datastorage/AnVIL_GREGoR_GSS_U04_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U04_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U04_HMB",
-  "anvil-datastorage/AnVIL_GREGoR_BROAD_U04_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_BROAD_U04_HMB",
-  "anvil-datastorage/AnVIL_GREGoR_BCM_U04_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_CNH_I_U04_GRU",
-  ### U04
-  "anvil-datastorage/AnVIL_GREGoR_GSS_U05_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U05_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_UW_CRDR_U05_HMB",
-  "anvil-datastorage/AnVIL_GREGoR_BROAD_U05_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_BROAD_U05_HMB",
-  "anvil-datastorage/AnVIL_GREGoR_BCM_U05_GRU",
-  "anvil-datastorage/AnVIL_GREGoR_CNH_I_U05_GRU"
+centers <- list(
+  GRU=c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR"),
+  HMB=c("BROAD", "UW_CRDR")
 )
+WORKSPACES_TO_KEEP <- lapply(ALL_CYCLES, function(cycle) {
+  lapply(names(centers), function(consent) 
+  paste("anvil-datastorage/AnVIL_GREGoR", centers[[consent]], cycle, consent, sep="_")
+)}) %>% unlist() %>% sort()
 ```
 
 # Look up bucket for each workspace.

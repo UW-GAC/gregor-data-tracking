@@ -4,7 +4,7 @@ library(dplyr)
 source("combine_tables.R")
 source("workflow_inputs_json.R")
 
-cycle <- "U05"
+cycle <- "U06"
 centers <- list(
   GRU=c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")

@@ -3,8 +3,8 @@ library(dplyr)
 library(readr)
 source("compare_tables.R")
 
-cycle1 <- "U04"
-cycle2 <- "U05"
+cycle1 <- "U05"
+cycle2 <- "U06"
 centers <- list(
   GRU=c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
@@ -32,7 +32,7 @@ for (i in seq_along(workspaces1)) {
   for (t in names(table_comparison$table_diff_list)) {
     # print differences for each table
     outfile <- paste0(workspaces1[i], "_diff_", cycle2, "_", t, ".txt")
-    writeLines(knitr::kable(table_comparison$table_diff_list), outfile)
+    writeLines(knitr::kable(table_comparison$table_diff_list[[t]]), outfile)
     gsutil_cp(outfile, paste0(combined_bucket, "/", cycle2, "_QC/"))
     gsutil_cp(outfile, paste0(avbucket(namespace=namespace, name=workspaces2[i]), "/post_upload_qc/"))
   }
