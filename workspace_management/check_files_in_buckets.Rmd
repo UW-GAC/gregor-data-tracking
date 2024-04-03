@@ -1,7 +1,7 @@
 ---
 title: Check files in WORKSPACES
 author: DCC
-date: `r format(Sys.time(), "%d %B, %Y")`
+date: "`r Sys.Date()`"
 editor_options: 
   chunk_output_type: console
 output:
