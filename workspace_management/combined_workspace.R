@@ -13,6 +13,9 @@ workspaces <- lapply(names(centers), function(consent)
   paste("AnVIL_GREGoR", centers[[consent]], cycle, consent, sep="_")
 ) %>% unlist() %>% sort()
 
+joint_call_tables <- c("aligned_dna_short_read", "aligned_dna_short_read_set", "called_variants_dna_short_read")
+joint_call_workspaces <- paste("AnVIL_GREGoR_DCC", cycle, names(centers), sep="_")
+
 namespace <- "anvil-datastorage"
 combined_workspace <- paste0("GREGOR_COMBINED_CONSORTIUM_", cycle)
 combined_namespace <- "gregor-dcc"
@@ -20,11 +23,16 @@ combined_namespace <- "gregor-dcc"
 model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 model <- json_to_dm(model_url)
 
-table_names <- names(model)
+table_names <- setdiff(names(model), c("experiment", "aligned"))
   
 table_list <- list()
 for (t in table_names) {
-  dat <- combine_tables(t, model, workspaces=workspaces, namespace=namespace)
+  workspaces_t <- workspaces
+  if (t %in% joint_call_tables) {
+    workspaces_t <- c(workspaces, joint_call_workspaces)
+  }
+  
+  dat <- combine_tables(t, model, workspaces=workspaces_t, namespace=namespace)
   # only proceed if we have any data for this table
   if (nrow(dat) > 0) {
     if (grepl("_set$", t)) {
