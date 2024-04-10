@@ -1,5 +1,5 @@
 ---
-title: Check files in WORKSPACES
+title: Check files in workspaces
 author: DCC
 date: "`r Sys.Date()`"
 editor_options: 
@@ -188,7 +188,7 @@ for (category in unique(x$center)) {
 ## Save the list of files not referenced anywhere
 
 ```{r}
-combined_bucket <- avbucket(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", cycle))
+combined_bucket <- avbucket(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", UPLOAD_CYCLE))
 uri <- paste0(combined_bucket, "/", UPLOAD_CYCLE, "_QC")
 outfile <- paste(UPLOAD_CYCLE, "files_not_referenced_in_data_tables.tsv", sep="_")
 write_tsv(x0, outfile)
