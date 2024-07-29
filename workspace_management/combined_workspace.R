@@ -4,9 +4,9 @@ library(dplyr)
 source("combine_tables.R")
 source("workflow_inputs_json.R")
 
-cycle <- "U06"
+cycle <- "U07"
 centers <- list(
-  GRU=c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR"),
+  GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
 )
 workspaces <- lapply(names(centers), function(consent) 

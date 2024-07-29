@@ -26,11 +26,11 @@ library(knitr)
 
 
 ```{r constants}
-UPLOAD_CYCLE <- "U06"
-ALL_CYCLES <- paste0("U0", 2:6)
+UPLOAD_CYCLE <- "U07"
+ALL_CYCLES <- paste0("U0", 2:7)
 
 centers <- list(
-  GRU=c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR"),
+  GRU=c("BCM", "CNH_I", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
 )
 WORKSPACES_TO_KEEP <- lapply(ALL_CYCLES, function(cycle) {
