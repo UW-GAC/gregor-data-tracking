@@ -3,10 +3,10 @@ library(dplyr)
 library(readr)
 source("compare_tables.R")
 
-cycle1 <- "U05"
-cycle2 <- "U06"
+cycle1 <- "U06"
+cycle2 <- "U07"
 centers <- list(
-  GRU=c("BCM", "CNH_I", "GSS", "BROAD", "UW_CRDR"),
+  GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
 )
 workspaces1 <- lapply(names(centers), function(consent) 
