@@ -1,4 +1,6 @@
 library(dplyr)
+library(tidyr)
+library(stringr)
 library(readr)
 
 # remove rows from a set of tables for release
@@ -30,15 +32,21 @@ release_qc <- function(table_list, cascading=TRUE) {
   table_list[["analyte"]] <- table_list[["analyte"]] %>%
     filter(analyte_id %in% analytes_ref)
   
-  # only participants who either have an analyte or are related to someone with an analyte
+  # only participants who have an analyte, are related to someone with an analyte, or have a genetic finding
   ref_table_list <- if (cascading) table_list else orig_table_list
   participants_ref <- ref_table_list[["analyte"]][["participant_id"]]
   families_ref <- ref_table_list[["participant"]] %>%
     filter(participant_id %in% participants_ref) %>%
     select(family_id) %>%
     unlist()
+  findings_ref <- ref_table_list[["genetic_findings"]] %>%
+    select(participant_id, additional_family_members_with_variant) %>%
+    separate_longer_delim(additional_family_members_with_variant, "|") %>%
+    unlist(use.names=FALSE) %>%
+    na.omit() %>%
+    str_trim()
   table_list[["participant"]] <- table_list[["participant"]] %>%
-    filter(participant_id %in% participants_ref | family_id %in% families_ref)
+    filter(participant_id %in% participants_ref | family_id %in% families_ref | participant_id %in% findings_ref)
   
   # only families with participants
   ref_table_list <- if (cascading) table_list else orig_table_list

@@ -66,6 +66,7 @@ for (consent in names(workspaces)) {
       table_list[[t]] <- dat
     }
   }
+  
   # drop participants
   remove_cons <- intersect(samples_to_remove$participant_id, table_list$participant$participant_id)
   if (length(remove_cons) > 0) {
@@ -74,7 +75,13 @@ for (consent in names(workspaces)) {
     for (p in remove_cons) {
       table_list <- delete_rows(p, "participant", tables=table_list, model=model)
     }
-    table_list[["genetic_findings"]] <- original_table_list[["genetic_findings"]]
+    new_findings <- original_table_list[["genetic_findings"]]
+    for (p in remove_cons) {
+      new_findings <- new_findings %>%
+        filter(!(participant_id %in% p)) %>%
+        filter(!grepl(p, additional_family_members_with_variant))
+    }
+    table_list[["genetic_findings"]] <- new_findings
     drop_participants_log <- release_qc_log(original_table_list, table_list)
     report_file <- paste0("R02_dropped_participants_", consent, ".log")
     writeLines(knitr::kable(drop_participants_log), report_file)
@@ -100,12 +107,25 @@ for (consent in names(workspaces)) {
   }
   
   # for reprocessed files, remove source file
+  # for now, just one reprocessed table, but could loop in future
+  original_table_list <- table_list
   reprocessed_table_name <- sub("^original_", "", sub("_id$", "", names(reprocessed_map)[1]))
   id <- paste0(reprocessed_table_name, "_id")
   tmp <- reprocessed_map %>%
     filter(!!sym(paste0("reprocessed_", id)) %in% table_list[[reprocessed_table_name]][[id]])
-  table_list[[reprocessed_table_name]] <- table_list[[ reprocessed_table_name]] %>%
+  table_list[[reprocessed_table_name]] <- table_list[[reprocessed_table_name]] %>%
     filter(!(!!sym(id) %in% tmp[[paste0("original_", id)]]))
+  # remove sets and called variants files that are linked to source file
+  reprocessed_set_name <- paste0(reprocessed_table_name, "_set")
+  table_list[[reprocessed_set_name]] <- table_list[[reprocessed_set_name]] %>%
+    filter(!(!!sym(id) %in% tmp[[paste0("original_", id)]]))
+  table_list <- AnvilDataModels:::.filter_set_tables(table_list, original_table_list)
+  # remove called variants files that are linked to dropped sets
+  variant_table_name <- sub("^aligned", "called_variants", reprocessed_table_name)
+  set_id <- paste0(reprocessed_set_name, "_id")
+  table_list[[variant_table_name]] <- table_list[[variant_table_name]] %>%
+    filter(!!sym(set_id) %in% table_list[[reprocessed_set_name]][[set_id]])
+    
   
   # create experiment and aligned tables
   table_list[["experiment"]] <- experiment_table(table_list)
@@ -120,6 +140,8 @@ for (consent in names(workspaces)) {
   workflow_inputs_json(file_list = file_list, 
                        model_url = model_url, 
                        workspace = combined_workspace, 
-                       namespace = combined_namespace)
+                       namespace = combined_namespace,
+                       check_vcf = "true")
+  gsutil_cp(paste0(combined_workspace, "_validate_gregor_model.json"), bucket)
 }
 
