@@ -36,7 +36,7 @@ sample_remove_file <- "gs://fc-secure-a9bb4425-93f6-458e-9baa-6bd6e93dac4e/R02_f
 #gsutil_cp(sample_remove_file, ".")
 samples_to_remove <- read_tsv(basename(sample_remove_file))
 
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/v1.5/GREGoR_data_model.json"
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/280037bbb8956a690d71c1cdad6aed35d626fa9b/GREGoR_data_model.json"
 model <- json_to_dm(model_url)
 
 table_names <- setdiff(names(model), c("experiment", "aligned"))
