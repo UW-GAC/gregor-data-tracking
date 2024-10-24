@@ -34,7 +34,11 @@ reprocessed_map <- read_tsv(basename(reprocessed_mapping_file))
 
 sample_remove_file <- "gs://fc-secure-a9bb4425-93f6-458e-9baa-6bd6e93dac4e/R02_files/R02_samples_to_remove.tsv"
 #gsutil_cp(sample_remove_file, ".")
-samples_to_remove <- read_tsv(basename(sample_remove_file))
+sample_remove_file_2 <- "gs://fc-secure-c0f33243-22f5-4fb9-826a-2a4eaffdf5a9/R02_QC/participant_ids-to-remove.tsv"
+#gsutil_cp(sample_remove_file_2, ".")
+samples_to_remove <- read_tsv(basename(sample_remove_file)) %>%
+  select(participant_id) %>%
+  bind_rows(read_tsv(basename(sample_remove_file_2)))
 
 model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/280037bbb8956a690d71c1cdad6aed35d626fa9b/GREGoR_data_model.json"
 model <- json_to_dm(model_url)
