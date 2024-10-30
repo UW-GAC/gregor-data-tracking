@@ -1,5 +1,5 @@
 library(AnVIL)
-remotes::install_github("UW-GAC/AnvilDataModels", ref="edit_tables")
+#remotes::install_github("UW-GAC/AnvilDataModels", ref="edit_tables")
 library(AnvilDataModels)
 library(dplyr)
 library(readr)
