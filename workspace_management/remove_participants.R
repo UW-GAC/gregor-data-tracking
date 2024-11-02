@@ -10,7 +10,7 @@ remove_participants <- function(participant_ids, workspace, namespace, model_url
   tables <- avtables(namespace=namespace, name=workspace)
   table_list <- list()
   for (t in tables$table) {
-    message(t)
+    message("reading table ", t)
     dat <- avtable(t, namespace=namespace, name=workspace)
     if (grepl("_set$", t)) {
       dat <- unnest_set_table(dat)
@@ -23,20 +23,27 @@ remove_participants <- function(participant_ids, workspace, namespace, model_url
   for (p in participant_ids) {
     table_list <- delete_rows(p, "participant", tables=table_list, model=model)
   }
-  new_findings <- original_table_list[["genetic_findings"]]
-  for (p in participant_ids) {
-    new_findings <- new_findings %>%
-      filter(!(participant_id %in% p)) %>%
-      filter(!grepl(p, additional_family_members_with_variant))
+  if ("genetic_findings" %in% names(original_table_list)) {
+    new_findings <- original_table_list[["genetic_findings"]]
+    for (p in participant_ids) {
+      new_findings <- new_findings %>%
+        filter(!(participant_id %in% p)) %>%
+        filter(!grepl(p, additional_family_members_with_variant))
+    }
+    table_list[["genetic_findings"]] <- new_findings
   }
-  table_list[["genetic_findings"]] <- new_findings
   
   drop_participants_log <- list()
-  for (t in names(table_list)) {
-    message(t)
+  # need to drop sets first
+  set_tables <- names(table_list)[grepl("_set$", names(table_list))]
+  table_names <- c(set_tables, setdiff(names(table_list), set_tables))
+  for (t in table_names) {
     id_col <- paste0(t, "_id")
     ids_to_delete <- setdiff(original_table_list[[t]][[id_col]], table_list[[t]][[id_col]])
-    if (!dry_run) avtable_delete_values(t, ids_to_delete, namespace=namespace, name=workspace)
+    if (!dry_run & length(ids_to_delete) > 0) {
+      message("deleting values from table ", t)
+      avtable_delete_values(t, ids_to_delete, namespace=namespace, name=workspace)
+    }
     drop_participants_log[[t]] <- ids_to_delete
   }
   
