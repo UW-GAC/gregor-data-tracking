@@ -26,8 +26,8 @@ library(knitr)
 
 
 ```{r constants}
-UPLOAD_CYCLE <- "U07"
-ALL_CYCLES <- paste0("U0", 2:7)
+UPLOAD_CYCLE <- "U08"
+ALL_CYCLES <- paste0("U0", 2:8)
 
 centers <- list(
   GRU=c("BCM", "CNH_I", "UCI", "GSS", "BROAD", "UW_CRDR"),
@@ -143,7 +143,8 @@ x <- tmp %>%
 
 x0 <- x %>%
   filter(n_workspaces == 0) %>%
-  select(-n_workspaces, -n_upload_cycles, -upload_cycles)
+  select(-n_workspaces, -n_upload_cycles, -upload_cycles) %>%
+  mutate(center = ifelse(center == "CNH_I", "UCI", center))
 ```
 
 ## Summary of files not referenced in any workspace by file type

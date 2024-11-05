@@ -3,8 +3,8 @@ library(dplyr)
 library(readr)
 source("compare_tables.R")
 
-cycle1 <- "U06"
-cycle2 <- "U07"
+cycle1 <- "U07"
+cycle2 <- "U08"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
