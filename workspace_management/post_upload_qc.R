@@ -16,7 +16,9 @@ namespace <- "anvil-datastorage"
 
 combined_bucket <- avbucket(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", cycle))
 
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
+# U08 was validated with data model v1.5.2
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/280037bbb8956a690d71c1cdad6aed35d626fa9b/GREGoR_data_model.json"
+#model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 
 for (w in workspaces) {
   message(w)

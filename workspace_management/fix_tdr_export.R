@@ -6,14 +6,12 @@ source("workflow_inputs_json.R")
 
 # first: delete "workspace_attributes" table
 
-release <- "RELEASE_01"
+release <- "R02"
 consent <- c("GRU", "HMB")
 workspaces <- paste("AnVIL_GREGoR", release, consent, sep="_")
 namespace <- "anvil-datastorage"
 
-# U03 was validated with data model v1.2
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/d7374588351e3e9d75f55627fbb2f6f775c054b1/GREGoR_data_model.json"
-#model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 
 write_original_table <- function(dat, table_name, bucket) {
   tmpfile <- tempfile()
