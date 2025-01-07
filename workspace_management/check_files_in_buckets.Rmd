@@ -26,8 +26,8 @@ library(knitr)
 
 
 ```{r constants}
-UPLOAD_CYCLE <- "U08"
-ALL_CYCLES <- paste0("U0", 2:8)
+UPLOAD_CYCLE <- "U09"
+ALL_CYCLES <- paste0("U0", 2:9)
 
 centers <- list(
   GRU=c("BCM", "CNH_I", "UCI", "GSS", "BROAD", "UW_CRDR"),
