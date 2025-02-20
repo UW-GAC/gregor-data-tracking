@@ -1,0 +1,138 @@
+---
+title: "Population descriptor word clouds"
+output: html_notebook
+---
+
+```{r}
+library(AnVIL)
+library(tidyverse)
+#install.packages("ggwordcloud")
+library(ggwordcloud)
+```
+
+```{r}
+participant <- avtable("participant")
+```
+
+```{r}
+race_ethn <- participant %>%
+  select(participant_id, reported_race, reported_ethnicity) %>%
+  mutate(race_ethn = ifelse(reported_ethnicity %in% "Hispanic or Latino", paste(reported_race, reported_ethnicity, sep="|"), reported_race)) %>%
+  select(-starts_with("reported")) %>%
+  separate_longer_delim(race_ethn, delim="|") %>%
+  filter(!is.na(race_ethn), race_ethn != "NA")
+```
+
+```{r}
+race_ethn %>%
+  count(race_ethn) %>%
+  ggplot(aes(label=race_ethn, size=n)) + 
+    geom_text_wordcloud() +
+    scale_size_area(max_size = 40) +
+    theme_minimal()
+```
+
+
+```{r}
+dat <- participant %>%
+  select(participant_id, reported_race, reported_ethnicity) %>%
+  mutate(reported_race = ifelse(grepl("|", reported_race, fixed=TRUE), "Multiple", reported_race)) %>%
+  mutate(race_ethn = ifelse(reported_ethnicity %in% "Hispanic or Latino", 
+                       ifelse(reported_race %in% "White", paste(reported_ethnicity, reported_race, sep="|"), 
+                         ifelse(!is.na(reported_race), paste(reported_ethnicity, "Other", sep="|"), reported_ethnicity)), reported_race)) %>%
+  mutate(race_ethn = ifelse(is.na(race_ethn), "Unknown", race_ethn))
+```
+
+```{r}
+dat %>%
+ ggplot(aes(y = race_ethn)) + geom_bar()
+```
+
+
+```{r}
+dat <- participant %>%
+  select(participant_id, reported_race, reported_ethnicity) %>%
+  mutate(reported_race = ifelse(grepl("|", reported_race, fixed=TRUE), "Multiple", reported_race)) %>%
+  mutate(reported_race = ifelse(is.na(reported_race), "Unknown", reported_race)) %>%
+  mutate(reported_ethnicity = ifelse(is.na(reported_ethnicity), "Unknown", reported_ethnicity))
+table(dat$reported_race, dat$reported_ethnicity)
+```
+
+
+
+
+```{r}
+corrections <- function(x) {
+  x <- str_replace(x, "Alaskan", "Alaska")
+  x <- str_replace(x, "Ashkanazi", "Ashkenazi")
+  x <- str_replace(x, "Ashkenzi", "Ashkenazi")
+  x <- str_replace(x, "Filipin[oa]", "Filipino/a")
+  x <- str_replace(x, "Finish", "Finnish")
+  x <- str_replace(x, "French-Canadian", "French Canadian")
+  x <- str_replace(x, "N. European", "Northern European")
+  x <- str_replace(x, "Norweigan", "Norwegian")
+  x <- str_replace(x, "Phill?ippines", "Filipino/a")
+  x <- str_replace(x, "Portugese", "Portuguese")
+  x <- str_replace(x, "Scandanavian", "Scandinavian")
+  x <- str_replace(x, "estern Europe$", "estern European")
+  x <- str_replace(x, "Possibly ", "")
+  x <- str_replace(x, "Half ", "")
+  x <- str_replace(x, " Region", "")
+  x <- str_replace(x, " Peninsula", "")
+  x <- str_replace(x, "Denmark", "Danish")
+  x <- str_replace(x, "England", "English")
+  x <- str_replace(x, "Germany", "German")
+  x <- str_replace(x, "Germanic", "German")
+  x <- str_replace(x, "Guam$", "Guamanian")
+  x <- str_replace(x, "Guatemala$", "Guatemalan")
+  x <- str_replace(x, "India$", "Indian")
+  x <- str_replace(x, "Iran$", "Iranian")
+  x <- str_replace(x, "Iraq$", "Iraqi")
+  x <- str_replace(x, "Ireland", "Irish")
+  x <- str_replace(x, "Italy", "Italian")
+  x <- str_replace(x, "Mexico", "Mexican")
+  x <- str_replace(x, "Mexicana", "Mexican")
+  x <- str_replace(x, "North India", "Northern India")
+  x <- str_replace(x, "Norway", "Norwegian")
+  x <- str_replace(x, "Poland", "Polish")
+  x <- str_replace(x, "Scotland", "Scottish")
+  x <- str_replace(x, "Spain", "Spanish")
+  x <- str_replace(x, "Sweden", "Swedish")
+  x <- str_replace(x, "Syria$", "Syrian")
+  x <- str_replace(x, "Turkey", "Turkish")
+  x <- str_replace(x, "Vietnam$", "Vietnamese")
+  x <- str_replace(x, "Wales", "Welsh")
+  return(x)
+}
+
+anc <- participant %>%
+  select(participant_id, ancestry_detail) %>%
+  filter(!is.na(ancestry_detail)) %>%
+  mutate(ancestry_detail = str_replace(ancestry_detail, "\\(.*\\)", "")) %>%
+  separate_longer_delim(ancestry_detail, delim="|") %>%
+  separate_longer_delim(ancestry_detail, delim=",") %>%
+  separate_longer_delim(ancestry_detail, delim=" and ") %>%
+  mutate(ancestry_detail = str_trim(ancestry_detail)) %>%
+  mutate(ancestry_detail = tools::toTitleCase(ancestry_detail)) %>%
+  mutate(ancestry_detail = corrections(ancestry_detail)) %>%
+  filter(!(ancestry_detail %in% c("", "Other", "Unknown")))
+```
+
+```{r}
+count(anc, ancestry_detail)
+```
+
+```{r}
+anc %>%
+  count(ancestry_detail) %>%
+  ggplot(aes(label=ancestry_detail, size=n)) + 
+    geom_text_wordcloud() +
+    scale_size_area(max_size = 20) +
+    theme_minimal()
+```
+
+
+```{r}
+(n_anc <- length(unique(anc$participant_id)))
+n_anc / nrow(participant)
+```

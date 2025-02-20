@@ -1,0 +1,28 @@
+---
+title: "GREGoR PCA results"
+output: html_notebook
+---
+
+```{r}
+library(AnVILGCP)
+library(tidyverse)
+```
+
+```{r}
+peddy_bucket <- "gs://fc-secure-1264f593-842f-4934-80c6-5e9b5cc0ca80/peddy"
+avlist(peddy_bucket, recursive=TRUE)
+```
+
+```{r}
+avcopy(file.path(peddy_bucket, "V2/gregor_consortium_u06_V2.het_check.csv"), ".")
+```
+
+```{r}
+pcs <- read_csv("gregor_consortium_u06_V2.het_check.csv") %>%
+  select(sample_id, starts_with("PC"))
+```
+
+```{r, fig.width=6, fig.height=6}
+ggplot(pcs, aes(PC1, PC2)) + geom_point(alpha=0.5)
+```
+

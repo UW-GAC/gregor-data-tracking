@@ -1,0 +1,94 @@
+---
+title: "Population descriptors in GREGoR"
+output: html_notebook
+---
+
+```{r}
+library(AnVIL)
+library(tidyverse)
+```
+
+```{r}
+participant <- avtable("participant")
+```
+
+```{r}
+dat <- participant %>%
+  select(participant_id, gregor_center, reported_race, reported_ethnicity, ancestry_detail)
+```
+
+```{r}
+dat %>%
+  count(is.na(ancestry_detail), gregor_center)
+```
+
+```{r}
+tmp <- count(dat, ancestry_detail)
+```
+
+```{r}
+dat %>%
+  select(participant_id, reported_race) %>%
+  mutate(reported_race = ifelse(is.na(reported_race), "Unknown", reported_race)) %>%
+  mutate(reported_race = ifelse(grepl("|", reported_race, fixed=TRUE), "Multiple", reported_race)) %>%
+  ggplot(aes(y = reported_race)) + geom_bar()
+```
+
+```{r}
+dat %>%
+  select(participant_id, reported_ethnicity) %>%
+  mutate(reported_ethnicity = ifelse(is.na(reported_ethnicity), "Unknown", reported_ethnicity)) %>%
+  ggplot(aes(y = reported_ethnicity)) + geom_bar()
+```
+
+```{r}
+tmp <- dat %>%
+  select(participant_id, ancestry_detail) %>%
+  filter(!is.na(ancestry_detail)) %>%
+  separate_longer_delim(ancestry_detail, delim="|") %>%
+  mutate(ancestry_detail = str_trim(ancestry_detail)) %>%
+  distinct()
+
+count(tmp, ancestry_detail)
+```
+
+```{r}
+count(tmp, ancestry_detail) %>%
+  arrange(desc(n))
+```
+
+```{r}
+tmp2 <- dat %>%
+  select(participant_id, ancestry_detail) %>%
+  filter(!is.na(ancestry_detail)) %>%
+  mutate(anc = tolower(ancestry_detail)) %>%
+  summarise(
+    Egyptian = sum(str_detect(anc, "egypt")),
+    Jewish = sum(str_detect(anc, "jew")),
+    `South Asian` = sum(str_detect(anc, "south asian") | str_detect(anc, "^india") | str_detect(anc, "asian indian") | str_detect(anc, "pakistani")),
+    Mexican = sum(str_detect(anc, "mexic")),
+    British = sum(str_detect(anc, "brit") | str_detect(anc, "engl") | str_detect(anc, "irish") | str_detect(anc, "ireland") | str_detect(anc, "welsh") | str_detect(anc, "scot")),
+    German = sum(str_detect(anc, "german")),
+    Scandanavian = sum(str_detect(anc, "scand") | str_detect(anc, "norw") | str_detect(anc, "fin"))
+    ) %>%
+  pivot_longer(everything(), names_to="ancestry_detail", values_to="n") %>%
+  arrange(desc(n))
+tmp2
+```
+
+
+```{r}
+table(is.na(dat$reported_race), is.na(dat$ancestry_detail))
+```
+
+
+```{r}
+dat %>%
+  filter(is.na(dat$reported_race) & !is.na(dat$ancestry_detail)) %>%
+  count(ancestry_detail) %>%
+  arrange(desc(n))
+```
+
+```{r}
+table(dat$reported_race, dat$reported_ethnicity, useNA="ifany")
+```

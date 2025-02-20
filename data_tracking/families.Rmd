@@ -1,0 +1,248 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Load libraries
+
+```{r}
+#BiocManager::install("AnVILGCP")
+#BiocManager::install("ggVennDiagram")
+library(AnVIL)
+library(tidyverse)
+library(ggVennDiagram)
+library(RColorBrewer)
+```
+
+Read data from tables
+
+```{r}
+participant <- avtable("participant")
+phenotype <- avtable("phenotype")
+experiment <- avtable("experiment")
+experiment_dna_short_read <- avtable("experiment_dna_short_read")
+genetic_findings <- avtable("genetic_findings")
+nrow(participant)
+```
+
+```{r}
+for (t in unique(experiment$table_name)) {
+  experiment[[paste0(t, "_id")]] <- ifelse(experiment[["table_name"]] == t, experiment[["id_in_table"]], NA)
+}
+
+experiments <- experiment %>%
+  left_join(select(experiment_dna_short_read, experiment_dna_short_read_id, experiment_type)) %>%
+  mutate(data_type = sub("^experiment_", "", table_name)) %>%
+  mutate(data_type = ifelse(!is.na(experiment_type), paste(data_type, experiment_type, sep="_"), data_type)) %>%
+  select(participant_id, data_type)
+
+# remove families with multiple probands
+duplicates <- participant %>%
+  filter(proband_relationship == "Self") %>%
+  count(family_id) %>%
+  filter(n > 1)
+
+participant <- participant %>%
+  filter(!(family_id %in% duplicates$family_id))
+
+participants <- participant %>%
+  select(participant_id, family_id, proband_relationship) %>%
+  inner_join(experiments)
+
+families <- participants %>%
+  group_by(family_id) %>%
+  count(data_type)
+
+probands <- participants %>%
+  filter(proband_relationship == "Self") %>%
+  group_by(family_id) %>%
+  count(data_type)
+```
+
+
+# How many families have multi-omics data?
+
+```{r}
+data_types <- list(
+  "ATAC" = c("atac_short_read"),
+  "DNA short read" = c("dna_short_read_exome", "dna_short_read_genome"), 
+  "DNA long read" = c("nanopore", "pac_bio"),
+  "RNA" = c("rna_short_read")
+)
+x <- lapply(data_types, function(t) {
+  probands %>%
+    filter(data_type %in% t) %>%
+    select(family_id) %>%
+    unlist(use.names=FALSE)
+})
+
+ggVennDiagram(x) + scale_fill_gradient(low="grey90", high="orange")
+```
+
+
+```{r}
+data_types <- list(
+  "SR exome" = c("dna_short_read_exome"), 
+  "SR genome" = c("dna_short_read_genome"), 
+  "Nanopore" = c("nanopore"), 
+  "PacBio"= c("pac_bio")
+)
+x <- lapply(data_types, function(t) {
+  probands %>%
+    filter(data_type %in% t) %>%
+    select(family_id) %>%
+    unlist(use.names=FALSE)
+})
+
+ggVennDiagram(x) + scale_fill_gradient(low="grey90", high="orange")
+```
+
+
+
+How many families have at least one individual with multi-omic data (proband or not)?
+
+```{r}
+tmp <- participants %>%
+  group_by(family_id, participant_id) %>%
+  summarise(n_data_types=n()) %>%
+  filter(n_data_types > 1) %>%
+  group_by(family_id) %>%
+  summarise(n_multi_omic=n())
+nrow(tmp)
+```
+
+How many families have multiple data types for > 1 family member?
+
+```{r}
+tmp2 <- tmp %>%
+  filter(n_multi_omic > 1)
+nrow(tmp2)
+```
+
+For all the probands with multi-omic data, how many have family members also with multi-omic data?
+
+```{r}
+mo <- participants %>%
+  group_by(family_id, participant_id, proband_relationship) %>%
+  summarise(n_data_types=n()) %>%
+  filter(n_data_types > 1)
+
+pb_mo <- mo %>%
+  filter(proband_relationship == "Self")
+
+fam_mo <- mo %>%
+  filter(proband_relationship != "Self") %>%
+  filter(family_id %in% pb_mo$family_id) %>%
+  ungroup() %>%
+  distinct(family_id)
+nrow(fam_mo)
+```
+
+
+
+# Solve status
+
+```{r}
+solve <- participant %>%
+  filter(proband_relationship == "Self", solve_status != "Unaffected") %>%
+  mutate(solve_status = factor(solve_status, levels=c("Solved", "Probably solved", "Partially solved", "Unsolved"))) %>%
+  select(participant_id, family_id, solve_status)
+
+count(solve, solve_status)
+```
+
+
+# Genetic findings
+
+```{r}
+sorted <- function(x,y,z) {
+  st <- paste(sort(na.omit(c(x,y,z))), collapse=" | ")
+  if (st == "") st <- NA
+  return(st)
+}
+findings <- solve %>%
+  left_join(genetic_findings) %>%
+  mutate(variant_type = ifelse(variant_type %in% c("SNV", "INDEL"), "SNV/INDEL", variant_type)) %>%
+  separate_wider_delim(method_of_discovery, delim="|", names=paste0("method", 1:3), too_few="align_start") %>%
+  mutate(across(starts_with("method"), str_trim)) %>%
+  rowwise() %>%
+  mutate(method_of_discovery = sorted(method1, method2, method3))
+
+count(findings, solve_status, method_of_discovery, variant_type)
+```
+
+```{r}
+methods <- unique(na.omit(findings$method_of_discovery))
+colormap <- setNames(brewer.pal(length(methods)+1, "Set1"), c(methods, "NA"))
+findings %>%
+  mutate(method_of_discovery = factor(ifelse(is.na(method_of_discovery), "NA", method_of_discovery), levels=c(methods, "NA"))) %>%
+  ggplot(aes(solve_status, fill=method_of_discovery)) +
+  geom_bar() + scale_fill_manual(values=colormap, breaks=names(colormap))
+```
+
+
+# How many participants are pediatric?
+
+```{r}
+participant %>%
+  mutate(pediatric = age_at_enrollment < 18) %>%
+  count(pediatric)
+```
+
+Of these, how many are affected?
+
+```{r}
+participant %>%
+  filter(affected_status %in% c("Affected", "Possibly affected")) %>%
+  mutate(pediatric = age_at_enrollment < 18) %>%
+  count(pediatric)
+```
+
+# How many short read genomes in total, and what percent are pediatric?
+
+```{r}
+sr <- participant %>%
+  inner_join(experiment) %>%
+  filter(table_name == "experiment_dna_short_read")
+nrow(sr)
+```
+
+```{r}
+sr %>% 
+  mutate(pediatric = age_at_enrollment < 18) %>%
+  count(pediatric)
+```
+
+
+# HPO frequency
+
+```{r}
+phenotype %>%
+  filter(ontology == "HPO") %>%
+  distinct(term_id) %>%
+  nrow()
+```
+
+Top HPO terms
+
+```{r}
+phenotype %>%
+  filter(ontology == "HPO") %>%
+  count(term_id) %>%
+  arrange(desc(n)) %>%
+  filter(n > 100)
+```
+
+Do any probands not have HPO terms?
+
+```{r}
+hpo <- phenotype %>%
+  filter(ontology == "HPO")
+participants %>%
+  filter(proband_relationship == "Self") %>%
+  distinct(participant_id) %>%
+  mutate(has_HPO = participant_id %in% hpo$participant_id) %>%
+  count(has_HPO)
+```
+
+(Note same counts when considering all ontologies)

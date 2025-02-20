@@ -1,0 +1,227 @@
+---
+title: "Genetic findings flowchart"
+output: html_notebook
+---
+
+```{r}
+library(AnVILGCP)
+library(tidyverse)
+library(igraph)
+```
+
+```{r}
+genetic_findings <- avtable("genetic_findings")
+participant <- avtable("participant")
+```
+
+# Solved cases
+
+```{r}
+sorted <- function(x,y,z) {
+  str <- paste(sort(na.omit(c(x, y, z))), collapse=" | ")
+  if (str == "") str <- NA
+  return(str)
+}
+
+findings <- genetic_findings %>%
+  filter(!is.na(method_of_discovery)) %>%
+  mutate(variant_type = ifelse(variant_type %in% c("SNV", "INDEL"), "SNV/INDEL", variant_type)) %>%
+  separate_wider_delim(method_of_discovery, delim="|", names=paste0("method", 1:3), too_few="align_start") %>%
+  mutate(across(starts_with("method"), str_trim)) %>%
+  rowwise() %>%
+  mutate(method_of_discovery = sorted(method1, method2, method3))
+
+solved <- participant %>%
+  filter(solve_status != "Unsolved")
+```
+
+```{r}
+count(findings, method_of_discovery)
+```
+
+
+```{r}
+findings2 <- findings %>%
+  filter(participant_id %in% solved$participant_id) %>%
+  select(method_of_discovery, variant_type, gene_known_for_phenotype) %>%
+  mutate(`SR-GS` = str_detect(method_of_discovery, "SR-GS"),
+         `SR-ES` = str_detect(method_of_discovery, "SR-ES"),
+         `LR-GS` = str_detect(method_of_discovery, "LR-GS"),
+         Reanalysis = str_detect("reanalysis", method_of_discovery))
+
+count(findings2, method_of_discovery)
+```
+
+## Variant type
+
+```{r}
+dat <- findings2 %>%
+  group_by(variant_type) %>%
+  summarise(LR = sum(`LR-GS`),
+            SR = sum(`SR-GS` & !`LR-GS`),
+            ES = sum(`SR-ES` & !`SR-GS` & !`LR-GS`))
+types <- dat$variant_type
+dat <- as.matrix(dat[,-1])
+rownames(dat) <- types
+```
+
+```{r}
+cases_solved <- paste0("Cases solved:\n", sum(dat))
+long_read_genome <- paste0("Requires\nlong read\ngenome: ", sum(dat[,"LR"]))
+short_read_genome <- paste0("Requires\nshort read\ngenome: ", sum(dat[,"SR"]))
+short_read_exome <- paste0("Detectable\nby exome: ", sum(dat[,"ES"]))
+nodes <- tibble(
+  from = c(
+    cases_solved,
+    cases_solved,
+    cases_solved
+  ),
+  to = c(
+    long_read_genome,
+    short_read_genome,
+    short_read_exome
+  )
+)
+
+for (type in colnames(dat)) {
+  for (variant in rownames(dat)) {
+    nv <- dat[variant, type]
+    if (nv > 0) {
+      from <- switch(type, LR = long_read_genome, SR = short_read_genome, ES = short_read_exome)
+      to <- paste0(variant, ": ", nv)
+      nodes <- bind_rows(nodes, tibble(from, to))
+    }
+  }
+}
+
+colormap <- function(x) {
+  variant_types <- c("SNV/INDEL", "SV", "CNV", "RE", "MEI", "STR")
+  map <- c("Cases", "ome", variant_types)
+  for (i in seq_along(map)) {
+    if (str_detect(x, map[i]))
+      return(as.character(i))
+  }
+  return(NA)
+}
+```
+
+```{r}
+flowchart <- function(nodes, colormap) {
+  g = graph_from_data_frame(nodes, directed = TRUE)
+  coords = layout_as_tree(g)
+  colnames(coords) = c("y", "x")
+  output_df = as_tibble(coords) %>%
+    mutate(step = vertex_attr(g, "name"),
+           x = x*-1)
+  plot_nodes = output_df %>%
+    mutate(height = c(rep("tall", 4), rep("short", nrow(coords)-4)), # rectangle height
+           xmin = x - 0.4,
+           xmax = x + 0.4,
+           ymin = ifelse(height == "tall", y - 0.8, y - 0.4),
+           ymax = ifelse(height == "tall", y + 0.8, y + 0.4)) %>%
+    rowwise() %>%
+    mutate(colortype = colormap(step))
+  plot_edges = nodes %>%
+    mutate(id = row_number()) %>%
+    pivot_longer(cols = c("from", "to"),
+                 names_to = "s_e",
+                 values_to = "step") %>%
+    left_join(plot_nodes, by = "step") %>%
+    select(-c(step, x, ymin, ymax)) %>%
+    mutate(x = ifelse(s_e == "from", xmax, xmin)) %>%
+    select(-c(xmin, xmax))
+  p = ggplot() +
+    geom_rect(data = plot_nodes,
+              mapping = aes(xmin = xmin, ymin = ymin, 
+                            xmax = xmax, ymax = ymax,
+                            fill = colortype),
+              alpha = 0.75) +
+    geom_text(data = plot_nodes,
+              mapping = aes(x = x, y = y, label = step)) + 
+    geom_path(data = plot_edges,
+              mapping = aes(x = x, y = y, group = id),
+              arrow = arrow(length = unit(0.3, "cm"), type = "closed")) +
+    theme_void() +
+    theme(plot.margin = unit(c(1, 1, 0.5, 1), "cm"),
+          legend.position = "none") +
+    scale_fill_brewer(palette="Pastel2")
+  p
+}
+```
+
+```{r}
+flowchart(nodes, colormap)
+```
+
+## Known genes
+
+```{r}
+dat <- findings2 %>%
+  group_by(gene_known_for_phenotype) %>%
+  summarise(LR = sum(`LR-GS`),
+            SR = sum(`SR-GS` & !`LR-GS`),
+            ES = sum(`SR-ES` & !`SR-GS` & !`LR-GS`))
+genes <- dat$gene_known_for_phenotype
+dat <- as.matrix(dat[,-1])
+rownames(dat) <- genes
+```
+
+```{r}
+cases_solved <- paste0("Cases solved:\n", sum(dat))
+long_read_genome <- paste0("Requires\nlong read\ngenome: ", sum(dat[,"LR"]))
+short_read_genome <- paste0("Requires\nshort read\ngenome: ", sum(dat[,"SR"]))
+short_read_exome <- paste0("Detectable\nby exome: ", sum(dat[,"ES"]))
+nodes <- tibble(
+  from = c(
+    cases_solved,
+    cases_solved,
+    cases_solved
+  ),
+  to = c(
+    long_read_genome,
+    short_read_genome,
+    short_read_exome
+  )
+)
+
+for (type in colnames(dat)) {
+  for (gene in rownames(dat)) {
+    nv <- dat[gene, type]
+    if (nv > 0) {
+      from <- switch(type, LR = long_read_genome, SR = short_read_genome, ES = short_read_exome)
+      to <- paste0(gene, ": ", nv)
+      nodes <- bind_rows(nodes, tibble(from, to))
+    }
+  }
+}
+
+colormap <- function(x) {
+  gene_types <- c("Known", "Candidate", "")
+  map <- c("Cases", "ome", gene_types)
+  for (i in seq_along(map)) {
+    if (str_detect(x, map[i]))
+      return(as.character(i))
+  }
+  return(NA)
+}
+```
+
+```{r}
+flowchart(nodes, colormap)
+```
+
+
+# Unsolved cases
+
+```{r}
+findings_unsolved <- findings %>%
+  filter(!(participant_id %in% solved$participant_id)) %>%
+  select(method_of_discovery, variant_type) %>%
+  mutate(`SR-GS` = str_detect(method_of_discovery, "SR-GS"),
+         `SR-ES` = str_detect(method_of_discovery, "SR-ES"),
+         `LR-GS` = str_detect(method_of_discovery, "LR-GS"),
+         Reanalysis = str_detect("reanalysis", method_of_discovery))
+
+count(findings_unsolved, method_of_discovery)
+```
+
