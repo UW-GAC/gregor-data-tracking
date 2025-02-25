@@ -6,6 +6,7 @@ output: html_notebook
 ```{r}
 library(AnVILGCP)
 library(tidyverse)
+library(jsonlite)
 ```
 
 ```{r}
@@ -15,6 +16,7 @@ avlist(peddy_bucket, recursive=TRUE)
 
 ```{r}
 avcopy(file.path(peddy_bucket, "V2/gregor_consortium_u06_V2.het_check.csv"), ".")
+avcopy(file.path(peddy_bucket, "V2/gregor_consortium_u06_V2.background_pca.json"), ".")
 ```
 
 ```{r}
@@ -24,5 +26,20 @@ pcs <- read_csv("gregor_consortium_u06_V2.het_check.csv") %>%
 
 ```{r, fig.width=6, fig.height=6}
 ggplot(pcs, aes(PC1, PC2)) + geom_point(alpha=0.5)
+```
+
+
+```{r}
+pcs_ref <- fromJSON("gregor_consortium_u06_V2.background_pca.json") %>%
+  mutate(group = paste("1000G", ancestry))
+pcs_all <- bind_rows(pcs_ref, mutate(pcs, group="GREGoR"))
+```
+
+
+```{r, fig.width=6, fig.height=5}
+colormap <- setNames(c("#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#e6ab02", "#666666"),
+                     c(paste("1000G", c("AFR", "AMR", "EAS", "EUR", "SAS")), "GREGoR"))
+ggplot(pcs_all, aes(PC1, PC2, color=group)) + geom_point(alpha=0.5) + 
+  scale_color_manual(values=colormap, breaks=names(colormap))
 ```
 
