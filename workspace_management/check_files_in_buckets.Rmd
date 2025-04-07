@@ -26,8 +26,8 @@ library(knitr)
 
 
 ```{r constants}
-UPLOAD_CYCLE <- "U09"
-ALL_CYCLES <- paste0("U0", 2:9)
+UPLOAD_CYCLE <- "U10"
+ALL_CYCLES <- c(paste0("U0", 2:9), paste0("U", 10))
 
 centers <- list(
   GRU=c("BCM", "CNH_I", "UCI", "GSS", "BROAD", "UW_CRDR"),
@@ -58,14 +58,16 @@ WORKSPACES <- avworkspaces() %>%
 WORKSPACES %>% select(workspace, upload_cycle, path) %>% kable()
 ```
 
-# Pull out data tables from each workspace
+# Pull out data tables from current workspaces
 
 ```{r get_data_tables}
+CURRENT_WORKSPACES <- WORKSPACES %>%
+  filter(upload_cycle == UPLOAD_CYCLE)
 table_list <- list()
-for (i in seq_along(WORKSPACES$workspace)) {
-  workspace <- WORKSPACES$workspace[i]
-  namespace <- WORKSPACES$namespace[i]
-  name <- WORKSPACES$name[i]
+for (i in seq_along(CURRENT_WORKSPACES$workspace)) {
+  workspace <- CURRENT_WORKSPACES$workspace[i]
+  namespace <- CURRENT_WORKSPACES$namespace[i]
+  name <- CURRENT_WORKSPACES$name[i]
   # Create a list for storing the tables.
   table_list[[workspace]] <- list()
   tables <- avtables(namespace=namespace, name=name)
@@ -115,39 +117,37 @@ file_data <- bind_rows(file_list, .id="workspace")
 file_data %>% group_by(workspace) %>% count() %>% kable()
 ```
 
-## Check if each file is referenced in a data table in any workspace
+## Check if each file is referenced in a data table in a current workspace
 
 ```{r}
 tmp <- file_data %>%
   # Which tables are the files referenced in?
   left_join(table_data, by = "file") %>%
-  # Which upload cycle are those WORKSPACES?
-  left_join(WORKSPACES %>% select(workspace, upload_cycle), by=c("referencing_workspace"="workspace")) %>%
-  select(workspace, file, referencing_workspace, upload_cycle) %>%
-  arrange(workspace, file, upload_cycle, referencing_workspace)
+  select(workspace, file, referencing_workspace) %>%
+  arrange(workspace, file, referencing_workspace)
 ```
 
 ```{r}
 x <- tmp %>% 
   group_by(workspace, file) %>%
   summarise(
-    n_workspaces=length(unique(na.omit(referencing_workspace))),
-    n_upload_cycles=length(unique(na.omit(upload_cycle))),
-    upload_cycles=paste(sort(unique(upload_cycle)), collapse=", "),
+    n_workspaces=length(unique(na.omit(referencing_workspace)))
   ) %>%
   ungroup() %>%
-  arrange(upload_cycles) %>%
   mutate(filetype = file_ext(file)) %>%
   filter(filetype != "") %>% # remove directories
   mutate(center=str_match(workspace, "anvil-datastorage/AnVIL_GREGoR_([A-Z_]+?)_U")[,2])
 
 x0 <- x %>%
   filter(n_workspaces == 0) %>%
-  select(-n_workspaces, -n_upload_cycles, -upload_cycles) %>%
+  select(-n_workspaces) %>%
   mutate(center = ifelse(center == "CNH_I", "UCI", center))
+
+x1 <- x0 %>%
+    filter(filetype %in% c("bam", "bai", "cram", "crai"))
 ```
 
-## Summary of files not referenced in any workspace by file type
+## Summary of files not referenced in current workspaces by file type
 
 ```{r}
 x0 %>%
@@ -156,58 +156,28 @@ x0 %>%
   kable()
 ```
 
-## List of files not referenced in any workspace by type {.tabset}
-
-```{r, results="asis"}
-for (category in unique(x$filetype)) {
-  cat(sprintf("\n\n### %s\n\n", category))
-    
-  x0 %>%
-    filter(filetype == !! category) %>%
-    select(filetype, center, workspace, file, everything()) %>%
-    arrange(filetype, center, workspace, file) %>%
-    kable() %>%
-    print()
-}
-```
-
-## List of files not referenced in any workspace by RC {.tabset}
-
-```{r, results="asis"}
-for (category in unique(x$center)) {
-  cat(sprintf("\n\n### %s\n\n", category))
-    
-  x0 %>%
-    filter(center == !! category) %>%
-    select(filetype, center, workspace, file, everything()) %>%
-    arrange(filetype, center, workspace, file) %>%
-    kable() %>%
-    print()
-}
-```
-
-## Save the list of files not referenced anywhere
+## Summary of bam/cram files not referenced in current workspaces by center
 
 ```{r}
-combined_bucket <- avbucket(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", UPLOAD_CYCLE))
-uri <- paste0(combined_bucket, "/", UPLOAD_CYCLE, "_QC")
-outfile <- paste(UPLOAD_CYCLE, "files_not_referenced_in_data_tables.tsv", sep="_")
-write_tsv(x0, outfile)
-# Copy to bucket
-gsutil_cp(outfile, file.path(uri, outfile))
+x1 %>%
+  group_by(center, workspace, filetype) %>%
+  count() %>%
+  kable()
 ```
+
 
 ## Save a list of bam/cram/index files per RC
 
 ```{r}
+combined_bucket <- avbucket(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", UPLOAD_CYCLE))
+uri <- paste0(combined_bucket, "/", UPLOAD_CYCLE, "_QC")
 for (category in unique(x0$center)) {
   outfile <- paste(category, UPLOAD_CYCLE, "files_not_referenced_in_data_tables.tsv", sep="_")
-  x0_out <- x0 %>%
+  x1_out <- x1 %>%
     filter(center == !! category) %>%
-    filter(filetype %in% c("bam", "bai", "cram", "crai")) %>%
     arrange(workspace, file, filetype)
-  if (nrow(x0_out) > 0) {
-    write_tsv(x0_out, outfile)
+  if (nrow(x1_out) > 0) {
+    write_tsv(x1_out, outfile)
     gsutil_cp(outfile, file.path(uri, outfile))
     # copy to workspaces so RCs can access
     rc_uri <- avbucket(namespace="anvil-datastorage", 
