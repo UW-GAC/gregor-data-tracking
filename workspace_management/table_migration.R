@@ -4,8 +4,8 @@ library(dplyr)
 library(readr)
 source("workflow_inputs_json.R")
 
-cycle1 <- "U09"
-cycle2 <- "U10"
+cycle1 <- "U10"
+cycle2 <- "U11"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")

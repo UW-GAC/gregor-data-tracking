@@ -5,7 +5,7 @@ library(readr)
 source("release_qc.R")
 source("pedigree_qc.R")
 
-cycle <- "U09"
+cycle <- "U10"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
@@ -17,8 +17,8 @@ namespace <- "anvil-datastorage"
 
 combined_bucket <- avbucket(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", cycle))
 
-# U08 was validated with data model v1.6.1
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/v1.6.1/GREGoR_data_model.json"
+# U10 was validated with data model v1.7.1
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/rna_readcounts/GREGoR_data_model.json"
 #model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 
 for (w in workspaces) {
@@ -46,7 +46,7 @@ for (w in workspaces) {
     return(outfile)
   })
   params <- list(tables=table_files, model=model_url)
-  report_file <- paste0(w, "_validation")
+  report_file <- paste0(w, "_validation_v2")
   custom_render_markdown("data_model_report", report_file, parameters=params)
   unlink(table_files)
   
@@ -60,7 +60,7 @@ for (w in workspaces) {
   message("generating QC report")
   qc_table_list <- release_qc(table_list, cascading=FALSE)
   log <- release_qc_log(table_list, qc_table_list)
-  report_file <- paste0(w, "_post_upload_qc.txt")
+  report_file <- paste0(w, "_post_upload_qc_v2.txt")
   message("copying QC file")
   writeLines(knitr::kable(log), report_file)
   gsutil_cp(report_file, out_dir)
@@ -69,7 +69,7 @@ for (w in workspaces) {
   # Pedigree QC
   message("generating pedigree QC")
   log <- pedigree_qc(table_list[["participant"]])
-  report_file <- paste0(w, "_pedigree_qc.txt")
+  report_file <- paste0(w, "_pedigree_qc_v2.txt")
   message("copying ped file")
   con <- file(report_file, open="w")
   tmp <- lapply(names(log), function(x) {
