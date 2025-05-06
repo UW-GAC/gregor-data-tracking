@@ -98,11 +98,14 @@ for (t in names(table_list)) {
   }
 }
 completeness <- bind_rows(completeness)
-outfile <- paste("completeness_optional_fields", cycle, "total.tsv", sep="_")
-write_tsv(completeness, outfile)
-gsutil_cp(outfile, file.path(avbucket(), paste0(cycle, "_QC"), outfile))
+#outfile <- paste("completeness_optional_fields", cycle, "total.tsv", sep="_")
+#write_tsv(completeness, outfile)
+#gsutil_cp(outfile, file.path(avbucket(), paste0(cycle, "_QC"), outfile))
+completeness_total <- completeness %>%
+  mutate(gregor_center = "ALL")
 
 
+completeness_centers <- list()
 for (center in unique(unlist(centers, use.names=FALSE))) {
   completeness <- list()
   for (t in names(table_list)) {
@@ -111,9 +114,9 @@ for (center in unique(unlist(centers, use.names=FALSE))) {
     if (length(opt) == 0) {
       completeness[[t]] <- NULL
     } else {
-      n <- nrow(table_list[[t]])
       tmp <- table_list[[t]] %>%
         filter(gregor_center == center)
+      n <- nrow(tmp)
       if (nrow(tmp) == 0) {
         completeness[[t]] <- NULL
       } else {
@@ -129,7 +132,16 @@ for (center in unique(unlist(centers, use.names=FALSE))) {
     }
   }
   completeness <- bind_rows(completeness)
-  outfile <- paste("completeness_optional_fields", cycle, center, "center.tsv", sep="_")
-  write_tsv(completeness, outfile)
-  gsutil_cp(outfile, file.path(avbucket(), paste0(cycle, "_QC"), outfile))
+  #outfile <- paste("completeness_optional_fields", cycle, center, "center.tsv", sep="_")
+  #write_tsv(completeness, outfile)
+  #gsutil_cp(outfile, file.path(avbucket(), paste0(cycle, "_QC"), outfile))
+  completeness_centers[[center]] <- completeness
 }
+
+
+comp_final <- bind_rows(completeness_centers) %>%
+  bind_rows(completeness_total) %>%
+  pivot_wider(names_from = gregor_center, values_from = completeness)
+outfile <- paste("completeness_optional_fields", cycle, "all.tsv", sep="_")
+write_tsv(comp_final, outfile)
+gsutil_cp(outfile, file.path(avbucket(), paste0(cycle, "_QC"), outfile))
