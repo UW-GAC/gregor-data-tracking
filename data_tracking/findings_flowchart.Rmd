@@ -4,14 +4,16 @@ output: html_notebook
 ---
 
 ```{r}
-library(AnVILGCP)
+library(AnVIL)
 library(tidyverse)
 library(igraph)
 ```
 
 ```{r}
-genetic_findings <- avtable("genetic_findings")
-participant <- avtable("participant")
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U10"
+namespace <- "gregor-dcc"
+genetic_findings <- avtable("genetic_findings", name=workspace, namespace=namespace)
+participant <- avtable("participant", name=workspace, namespace=namespace)
 ```
 
 # Solved cases
@@ -67,8 +69,8 @@ rownames(dat) <- types
 
 ```{r}
 cases_solved <- paste0("Cases solved:\n", sum(dat))
-long_read_genome <- paste0("Requires\nlong read\ngenome: ", sum(dat[,"LR"]))
-short_read_genome <- paste0("Requires\nshort read\ngenome: ", sum(dat[,"SR"]))
+long_read_genome <- paste0("Used long read\ngenome: ", sum(dat[,"LR"]))
+short_read_genome <- paste0("Used short read\ngenome: ", sum(dat[,"SR"]))
 short_read_exome <- paste0("Detectable\nby exome: ", sum(dat[,"ES"]))
 nodes <- tibble(
   from = c(
@@ -168,8 +170,8 @@ rownames(dat) <- genes
 
 ```{r}
 cases_solved <- paste0("Cases solved:\n", sum(dat))
-long_read_genome <- paste0("Requires\nlong read\ngenome: ", sum(dat[,"LR"]))
-short_read_genome <- paste0("Requires\nshort read\ngenome: ", sum(dat[,"SR"]))
+long_read_genome <- paste0("Used long read\ngenome: ", sum(dat[,"LR"]))
+short_read_genome <- paste0("Used short read\ngenome: ", sum(dat[,"SR"]))
 short_read_exome <- paste0("Detectable\nby exome: ", sum(dat[,"ES"]))
 nodes <- tibble(
   from = c(

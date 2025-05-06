@@ -6,89 +6,75 @@ output: html_notebook
 ```{r}
 library(AnVIL)
 library(tidyverse)
+library(RColorBrewer)
 ```
 
 ```{r}
-participant <- avtable("participant")
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U10"
+namespace <- "gregor-dcc"
+participant <- avtable("participant", name=workspace, namespace=namespace)
+```
+
+
+```{r}
+dat <- participant %>%
+  select(participant_id, reported_race, reported_ethnicity) %>%
+  mutate(reported_race = ifelse(grepl("|", reported_race, fixed=TRUE), "Multiple", reported_race)) %>%
+  mutate(race_ethn = ifelse(reported_ethnicity %in% "Hispanic or Latino", 
+                       ifelse(reported_race %in% "White", paste(reported_ethnicity, reported_race, sep="|"), 
+                         ifelse(!is.na(reported_race), paste(reported_ethnicity, "Other", sep="|"), reported_ethnicity)), reported_race)) %>%
+  mutate(race_ethn = ifelse(is.na(race_ethn), "Unknown", race_ethn))
+dat %>%
+ ggplot(aes(y = race_ethn)) + geom_bar()
 ```
 
 ```{r}
 dat <- participant %>%
-  select(participant_id, gregor_center, reported_race, reported_ethnicity, ancestry_detail)
-```
-
-```{r}
-dat %>%
-  count(is.na(ancestry_detail), gregor_center)
-```
-
-```{r}
-tmp <- count(dat, ancestry_detail)
-```
-
-```{r}
-dat %>%
-  select(participant_id, reported_race) %>%
-  mutate(reported_race = ifelse(is.na(reported_race), "Unknown", reported_race)) %>%
+  select(participant_id, reported_race, reported_ethnicity) %>%
   mutate(reported_race = ifelse(grepl("|", reported_race, fixed=TRUE), "Multiple", reported_race)) %>%
-  ggplot(aes(y = reported_race)) + geom_bar()
+  mutate(reported_race = ifelse(is.na(reported_race), "Unknown", reported_race)) %>%
+  mutate(reported_ethnicity = ifelse(is.na(reported_ethnicity), "Unknown", reported_ethnicity))
+table(dat$reported_race, dat$reported_ethnicity)
 ```
 
 ```{r}
-dat %>%
-  select(participant_id, reported_ethnicity) %>%
-  mutate(reported_ethnicity = ifelse(is.na(reported_ethnicity), "Unknown", reported_ethnicity)) %>%
-  ggplot(aes(y = reported_ethnicity)) + geom_bar()
-```
+#hm <- dat %>%
+#  count(reported_race, reported_ethnicity)
+# need to use table() to get zero counts
+tmp <- table(dat$reported_race, dat$reported_ethnicity)
+hm <- tibble(
+  reported_race = rep(rownames(tmp), ncol(tmp)),
+  reported_ethnicity = rep(colnames(tmp), each=nrow(tmp)),
+  expand.grid(tmp)
+) %>%
+  rename(n = Var1)
 
-```{r}
-tmp <- dat %>%
-  select(participant_id, ancestry_detail) %>%
-  filter(!is.na(ancestry_detail)) %>%
-  separate_longer_delim(ancestry_detail, delim="|") %>%
-  mutate(ancestry_detail = str_trim(ancestry_detail)) %>%
-  distinct()
+races <- c(
+  "American Indian or Alaska Native",
+  "Asian",
+  "Black or African American",
+  "Middle Eastern or North African",
+  "Native Hawaiian or Other Pacific Islander",
+  "White",
+  "Multiple",
+  "Unknown"
+)
+hm$reported_race <- factor(hm$reported_race, levels=rev(races))
 
-count(tmp, ancestry_detail)
-```
+breaks <- c(-Inf, 0, 10, 50, 100, 500, 1000, 2000, 3000)
+hm$n.cut <- cut(hm$n, breaks=breaks)
+levels(hm$n.cut) <- paste0(breaks[-length(breaks)]+1, "-", prettyNum(breaks[-1]))
+levels(hm$n.cut)[1] <- "0"
+nlevs <-length(levels(hm$n.cut))
+colors <- setNames(c("white", brewer.pal(nlevs, "Oranges")[1:nlevs-1]), levels(hm$n.cut))
 
-```{r}
-count(tmp, ancestry_detail) %>%
-  arrange(desc(n))
-```
-
-```{r}
-tmp2 <- dat %>%
-  select(participant_id, ancestry_detail) %>%
-  filter(!is.na(ancestry_detail)) %>%
-  mutate(anc = tolower(ancestry_detail)) %>%
-  summarise(
-    Egyptian = sum(str_detect(anc, "egypt")),
-    Jewish = sum(str_detect(anc, "jew")),
-    `South Asian` = sum(str_detect(anc, "south asian") | str_detect(anc, "^india") | str_detect(anc, "asian indian") | str_detect(anc, "pakistani")),
-    Mexican = sum(str_detect(anc, "mexic")),
-    British = sum(str_detect(anc, "brit") | str_detect(anc, "engl") | str_detect(anc, "irish") | str_detect(anc, "ireland") | str_detect(anc, "welsh") | str_detect(anc, "scot")),
-    German = sum(str_detect(anc, "german")),
-    Scandanavian = sum(str_detect(anc, "scand") | str_detect(anc, "norw") | str_detect(anc, "fin"))
-    ) %>%
-  pivot_longer(everything(), names_to="ancestry_detail", values_to="n") %>%
-  arrange(desc(n))
-tmp2
-```
-
-
-```{r}
-table(is.na(dat$reported_race), is.na(dat$ancestry_detail))
-```
-
-
-```{r}
-dat %>%
-  filter(is.na(dat$reported_race) & !is.na(dat$ancestry_detail)) %>%
-  count(ancestry_detail) %>%
-  arrange(desc(n))
-```
-
-```{r}
-table(dat$reported_race, dat$reported_ethnicity, useNA="ifany")
+ggplot(hm, aes(reported_ethnicity, reported_race, fill=n.cut)) +
+  geom_tile() + 
+  scale_fill_manual(values=colors, name="n") +
+  geom_text(aes(label = n)) + 
+  theme_minimal() + 
+  theme(panel.grid.minor=element_blank(),
+        panel.grid.major=element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  labs(x="", y="")
 ```

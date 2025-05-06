@@ -6,12 +6,14 @@ output: html_notebook
 ```{r}
 library(AnVIL)
 library(tidyverse)
-#install.packages("ggwordcloud")
+install.packages("ggwordcloud")
 library(ggwordcloud)
 ```
 
 ```{r}
-participant <- avtable("participant")
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U10"
+namespace <- "gregor-dcc"
+participant <- avtable("participant", name=workspace, namespace=namespace)
 ```
 
 ```{r}
@@ -30,32 +32,6 @@ race_ethn %>%
     geom_text_wordcloud() +
     scale_size_area(max_size = 40) +
     theme_minimal()
-```
-
-
-```{r}
-dat <- participant %>%
-  select(participant_id, reported_race, reported_ethnicity) %>%
-  mutate(reported_race = ifelse(grepl("|", reported_race, fixed=TRUE), "Multiple", reported_race)) %>%
-  mutate(race_ethn = ifelse(reported_ethnicity %in% "Hispanic or Latino", 
-                       ifelse(reported_race %in% "White", paste(reported_ethnicity, reported_race, sep="|"), 
-                         ifelse(!is.na(reported_race), paste(reported_ethnicity, "Other", sep="|"), reported_ethnicity)), reported_race)) %>%
-  mutate(race_ethn = ifelse(is.na(race_ethn), "Unknown", race_ethn))
-```
-
-```{r}
-dat %>%
- ggplot(aes(y = race_ethn)) + geom_bar()
-```
-
-
-```{r}
-dat <- participant %>%
-  select(participant_id, reported_race, reported_ethnicity) %>%
-  mutate(reported_race = ifelse(grepl("|", reported_race, fixed=TRUE), "Multiple", reported_race)) %>%
-  mutate(reported_race = ifelse(is.na(reported_race), "Unknown", reported_race)) %>%
-  mutate(reported_ethnicity = ifelse(is.na(reported_ethnicity), "Unknown", reported_ethnicity))
-table(dat$reported_race, dat$reported_ethnicity)
 ```
 
 
@@ -135,4 +111,10 @@ anc %>%
 ```{r}
 (n_anc <- length(unique(anc$participant_id)))
 n_anc / nrow(participant)
+```
+
+
+```{r}
+participant %>%
+  count(is.na(ancestry_detail), gregor_center)
 ```

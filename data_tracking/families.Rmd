@@ -17,11 +17,13 @@ library(RColorBrewer)
 Read data from tables
 
 ```{r}
-participant <- avtable("participant")
-phenotype <- avtable("phenotype")
-experiment <- avtable("experiment")
-experiment_dna_short_read <- avtable("experiment_dna_short_read")
-genetic_findings <- avtable("genetic_findings")
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U10"
+namespace <- "gregor-dcc"
+participant <- avtable("participant", name=workspace, namespace=namespace)
+phenotype <- avtable("phenotype", name=workspace, namespace=namespace)
+experiment <- avtable("experiment", name=workspace, namespace=namespace)
+experiment_dna_short_read <- avtable("experiment_dna_short_read", name=workspace, namespace=namespace)
+genetic_findings <- avtable("genetic_findings", name=workspace, namespace=namespace)
 nrow(participant)
 ```
 
