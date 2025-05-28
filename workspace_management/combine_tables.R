@@ -91,7 +91,7 @@ write_to_bucket <- function(table_list, bucket) {
     tmpfile <- tempfile()
     write_tsv(table_list[[t]], tmpfile)
     outfile <- paste0(bucket, "/data_tables/", t, ".tsv")
-    gsutil_cp(tmpfile, outfile)
+    avcopy(tmpfile, outfile)
     unlink(tmpfile)
     file_list[[t]] <- outfile
   }
