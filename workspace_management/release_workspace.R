@@ -29,9 +29,9 @@ joint_call_workspaces <- lapply(names(centers), function(x)
 )
 names(joint_call_workspaces) <- names(centers)
 
-#reprocessed_mapping_file <- "gs://fc-secure-a9bb4425-93f6-458e-9baa-6bd6e93dac4e/R02_files/R02_reprocessed_data_ID_mapping.tsv"
-#avcopy(reprocessed_mapping_file, ".")
-#reprocessed_map <- read_tsv(basename(reprocessed_mapping_file))
+reprocessed_mapping_file <- "gs://fc-secure-0f42a28e-f87c-45cc-a732-18caccd63e01/R02_files/R02_reprocessed_data_ID_mapping.tsv"
+avcopy(reprocessed_mapping_file, ".")
+reprocessed_map <- read_tsv(basename(reprocessed_mapping_file))
 
 sample_remove_file <- "gs://fc-secure-c0f33243-22f5-4fb9-826a-2a4eaffdf5a9/U10_QC/U10_participants_to_remove.tsv"
 avcopy(sample_remove_file, ".")
@@ -111,7 +111,6 @@ for (consent in names(workspaces)) {
     avcopy(report_file, file.path(log_dir, report_file))
   }
   
-  if (FALSE) {
   # for reprocessed files, remove source file
   # for now, just one reprocessed table, but could loop in future
   original_table_list <- table_list
@@ -131,7 +130,6 @@ for (consent in names(workspaces)) {
   set_id <- paste0(reprocessed_set_name, "_id")
   table_list[[variant_table_name]] <- table_list[[variant_table_name]] %>%
     filter(!!sym(set_id) %in% table_list[[reprocessed_set_name]][[set_id]])
-  }
   
   # create experiment and aligned tables
   table_list[["experiment"]] <- experiment_table(table_list)
@@ -139,8 +137,7 @@ for (consent in names(workspaces)) {
   
   # write tsv files to google bucket
   combined_workspace <- paste("AnVIL_GREGoR", release, "PREP", consent, sep="_")
-  #bucket <- avstorage(namespace=combined_namespace, name=combined_workspace)
-  bucket <- log_dir
+  bucket <- avstorage(namespace=combined_namespace, name=combined_workspace)
   file_list <- write_to_bucket(table_list, bucket)
   
   # write json for validation

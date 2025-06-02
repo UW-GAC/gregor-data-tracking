@@ -1,5 +1,5 @@
 library(AnVIL)
-remotes::install_github("UW-GAC/AnvilDataModels")
+#remotes::install_github("UW-GAC/AnvilDataModels")
 library(AnvilDataModels)
 library(dplyr)
 library(readr)
@@ -52,6 +52,8 @@ remove_participants <- function(participant_ids, workspace, namespace, model_url
   })
   report_file <- paste0(workspace, "_dropped_participants.txt")
   writeLines(knitr::kable(pretty_log), report_file)
-  log_dir <- file.path(avstorage(namespace=namespace, name=workspace)) 
-  avcopy(report_file, file.path(log_dir, report_file))
+  if (!dry_run) {
+    log_dir <- file.path(avstorage(namespace=namespace, name=workspace)) 
+    avcopy(report_file, file.path(log_dir, report_file))
+  }
 }
