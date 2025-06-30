@@ -30,11 +30,11 @@ joint_call_workspaces <- lapply(names(centers), function(x)
 names(joint_call_workspaces) <- names(centers)
 
 reprocessed_mapping_file <- "gs://fc-secure-0f42a28e-f87c-45cc-a732-18caccd63e01/R02_files/R02_reprocessed_data_ID_mapping.tsv"
-avcopy(reprocessed_mapping_file, ".")
+#avcopy(reprocessed_mapping_file, ".")
 reprocessed_map <- read_tsv(basename(reprocessed_mapping_file))
 
 sample_remove_file <- "gs://fc-secure-c0f33243-22f5-4fb9-826a-2a4eaffdf5a9/U10_QC/U10_participants_to_remove.tsv"
-avcopy(sample_remove_file, ".")
+#avcopy(sample_remove_file, ".")
 #sample_remove_file_2 <- "gs://fc-secure-c0f33243-22f5-4fb9-826a-2a4eaffdf5a9/R02_QC/participant_ids-to-remove.tsv"
 #avcopy(sample_remove_file_2, ".")
 samples_to_remove <- read_tsv(basename(sample_remove_file)) %>%

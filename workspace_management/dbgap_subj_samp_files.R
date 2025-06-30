@@ -2,7 +2,7 @@ library(AnVIL)
 library(dplyr)
 library(readr)
 
-release <- "R02"
+release <- "R03"
 # determined order of consent groups from dbGaP page: 
 # https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs003047.v1.p1
 consent_groups <- c("HMB", "GRU")
@@ -34,7 +34,7 @@ subj_list <- list()
 ssm_list <- list()
 attr_list <- list()
 for (consent in consent_groups) {
-  workspace <- paste("AnVIL_GREGoR", release, consent, sep="_")
+  workspace <- paste("AnVIL_GREGoR", release, "prep",consent, sep="_")
   participant <- avtable("participant", namespace=namespace, name=workspace)
   analyte <- avtable("analyte", namespace=namespace, name=workspace)
   
@@ -66,6 +66,8 @@ subj <- bind_rows(subj_list)
 ssm <- bind_rows(ssm_list)
 attr <- bind_rows(attr_list)
 
+attr %>% count(BODY_SITE, ANALYTE_TYPE, HISTOLOGICAL_TYPE)
+
 subj_dd <- tibble(
   VARNAME = names(subj),
   VARDESC = c("Subject ID", "Consent group", "Biological sex assigned at birth"),
@@ -88,9 +90,10 @@ attr_dd <- tibble(
   TYPE = rep("string", 5)
 )
 
-write_tsv(subj, "GREGoR_SubjectConsent_DS.txt")
-write_tsv(subj_dd, "GREGoR_SubjectConsent_DD.txt")
-write_tsv(ssm, "GREGoR_SubjectSampleMapping_DS.txt")
-write_tsv(ssm_dd, "GREGoR_SubjectSampleMapping_DD.txt")
-write_tsv(attr, "GREGoR_SampleAttributes_DS.txt")
-write_tsv(attr_dd, "GREGoR_SampleAttributes_DD.txt")
+write_tsv(subj, paste("GREGoR", release, "SubjectConsent_DS.txt", sep="_"))
+write_tsv(subj_dd, paste("GREGoR", release, "SubjectConsent_DD.txt", sep="_"))
+write_tsv(ssm, paste("GREGoR", release, "SubjectSampleMapping_DS.txt", sep="_"))
+write_tsv(ssm_dd, paste("GREGoR", release, "SubjectSampleMapping_DD.txt", sep="_"))
+write_tsv(attr, paste("GREGoR", release, "SampleAttributes_DS.txt", sep="_"))
+write_tsv(attr_dd, paste("GREGoR", release, "SampleAttributes_DD.txt", sep="_"))
+avcopy(paste("GREGoR", release, "*_D*.txt", sep="_"), file.path(avstorage(), "R03_QC"))

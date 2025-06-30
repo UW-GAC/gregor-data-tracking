@@ -8,7 +8,7 @@ namespace <- "anvil-datastorage"
 
 subj_list <- list()
 for (consent in consent_groups) {
-  workspace <- paste("AnVIL_GREGoR", release, consent, sep="_")
+  workspace <- paste("AnVIL_GREGoR", release, "prep", consent, sep="_")
   participant <- avtable("participant", namespace=namespace, name=workspace)
   
   subj_list[[consent]] <- participant %>%
@@ -22,3 +22,4 @@ for (RC in unique(subj$gregor_center)) {
     select(participant_id, consent_code) %>%
     write_tsv(paste(RC, release, "participant_consent.txt", sep="_"))
 }
+avcopy(paste("*", release, "*consent*.txt", sep="_"), file.path(avstorage(), "R03_QC"))
