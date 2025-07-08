@@ -3,8 +3,8 @@ library(dplyr)
 library(readr)
 source("compare_tables.R")
 
-cycle1 <- "U09"
-cycle2 <- "U10"
+cycle1 <- "U10"
+cycle2 <- "U11"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
@@ -15,7 +15,7 @@ workspaces1 <- lapply(names(centers), function(consent)
 workspaces2 <- sub(cycle1, cycle2, workspaces1)
 namespace <- "anvil-datastorage"
 
-combined_bucket <- avbucket(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", cycle2))
+combined_bucket <- avstorage(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", cycle2))
 
 for (i in seq_along(workspaces1)) {
   message(workspaces1[i])
@@ -33,13 +33,13 @@ for (i in seq_along(workspaces1)) {
     # print differences for each table
     outfile <- paste0(workspaces1[i], "_diff_", cycle2, "_", t, ".txt")
     writeLines(knitr::kable(table_comparison$table_diff_list[[t]]), outfile)
-    gsutil_cp(outfile, paste0(combined_bucket, "/", cycle2, "_QC/"))
-    gsutil_cp(outfile, paste0(avbucket(namespace=namespace, name=workspaces2[i]), "/post_upload_qc/"))
+    avcopy(outfile, paste0(combined_bucket, "/", cycle2, "_QC/"))
+    avcopy(outfile, paste0(avstorage(namespace=namespace, name=workspaces2[i]), "/post_upload_qc/"))
   }
   
   # print summary
   outfile <- paste0(workspaces1[i], "_diff_", cycle2, "_summary.txt")
   writeLines(knitr::kable(table_comparison$summary_list), outfile)
-  gsutil_cp(outfile, paste0(combined_bucket, "/", cycle2, "_QC/"))
-  gsutil_cp(outfile, paste0(avbucket(namespace=namespace, name=workspaces2[i]), "/post_upload_qc/"))
+  avcopy(outfile, paste0(combined_bucket, "/", cycle2, "_QC/"))
+  avcopy(outfile, paste0(avstorage(namespace=namespace, name=workspaces2[i]), "/post_upload_qc/"))
 }

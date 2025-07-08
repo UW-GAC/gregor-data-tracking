@@ -26,8 +26,8 @@ library(knitr)
 
 
 ```{r constants}
-UPLOAD_CYCLE <- "U10"
-ALL_CYCLES <- c(paste0("U0", 2:9), paste0("U", 10))
+UPLOAD_CYCLE <- "U11"
+ALL_CYCLES <- c(paste0("U0", 2:9), paste0("U1", c(0:1)))
 
 centers <- list(
   GRU=c("BCM", "CNH_I", "UCI", "GSS", "BROAD", "UW_CRDR"),
@@ -49,10 +49,10 @@ WORKSPACES <- avworkspaces() %>%
   mutate(
     upload_cycle = str_extract(workspace, "_(U\\d+)", group=1)
   ) %>%
-  # Add bucket path using avbucket
+  # Add bucket path using avstorage
   rowwise() %>%
   mutate(
-    path = avbucket(namespace=namespace, name=name)
+    path = avstorage(namespace=namespace, name=name)
   ) %>%
   select(workspace, namespace, name, upload_cycle, path)
 WORKSPACES %>% select(workspace, upload_cycle, path) %>% kable()
@@ -169,7 +169,7 @@ x1 %>%
 ## Save a list of bam/cram/index files per RC
 
 ```{r}
-combined_bucket <- avbucket(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", UPLOAD_CYCLE))
+combined_bucket <- avstorage(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", UPLOAD_CYCLE))
 uri <- paste0(combined_bucket, "/", UPLOAD_CYCLE, "_QC")
 for (category in unique(x0$center)) {
   outfile <- paste(category, UPLOAD_CYCLE, "files_not_referenced_in_data_tables.tsv", sep="_")
@@ -178,12 +178,12 @@ for (category in unique(x0$center)) {
     arrange(workspace, file, filetype)
   if (nrow(x1_out) > 0) {
     write_tsv(x1_out, outfile)
-    gsutil_cp(outfile, file.path(uri, outfile))
+    avcopy(outfile, file.path(uri, outfile))
     # copy to workspaces so RCs can access
-    rc_uri <- avbucket(namespace="anvil-datastorage", 
+    rc_uri <- avstorage(namespace="anvil-datastorage", 
                        name=paste("AnVIL_GREGoR", category, UPLOAD_CYCLE, "GRU", sep="_"))
-    gsutil_cp(outfile, file.path(uri, outfile))
-    gsutil_cp(outfile, file.path(rc_uri, "post_upload_qc", outfile))
+    avcopy(outfile, file.path(uri, outfile))
+    avcopy(outfile, file.path(rc_uri, "post_upload_qc", outfile))
   }
 }
 ```

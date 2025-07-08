@@ -7,8 +7,10 @@ compare_tables <- function(table1_list, table2_list, table1_prefix, table2_prefi
   for (t in tables_to_check) {
     table1 <- table1_list[[t]]
     table2 <- table2_list[[t]]
-    fixme <- "chrom"
-    if (fixme %in% names(table1)) table1[[fixme]] <- as.character(table1[[fixme]])
+    fixme <- c("chrom", "instrument_ics_version")
+    for (f in fixme) {
+      if (f %in% names(table1)) table1[[f]] <- as.character(table1[[f]])
+    }
     
     entity_id <- paste0(t, "_id")
     dat <- semi_join(table2, table1, by=entity_id) # rows in table2 also in table1
