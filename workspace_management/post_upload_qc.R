@@ -5,21 +5,23 @@ library(dplyr)
 library(readr)
 source("release_qc.R")
 source("pedigree_qc.R")
+source("affected_qc.R")
 
 cycle <- "U11"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
 )
+partner_workspaces <- c("AnVIL_GREGoR_IHOPE_P01_HMB")
 workspaces <- lapply(names(centers), function(consent) 
   paste("AnVIL_GREGoR", centers[[consent]], cycle, consent, sep="_")
 ) %>% unlist() %>% sort()
+workspaces <- c(workspaces, partner_workspaces)
 namespace <- "anvil-datastorage"
 
 combined_bucket <- avstorage(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", cycle))
 
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/fiberseq/GREGoR_data_model.json"
-#model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 
 for (w in workspaces) {
   message(w)
@@ -78,6 +80,15 @@ for (w in workspaces) {
     writeLines("\n", con)
   })
   close(con)
+  avcopy(report_file, out_dir)
+  avcopy(report_file, combined_dir)
+  
+  # Affected status QC
+  message("generating affected status QC")
+  log <- affected_qc(table_list[["participant"]])
+  report_file <- paste0(w, "_affected_status_qc.txt")
+  message("copying QC file")
+  writeLines(knitr::kable(log), report_file)
   avcopy(report_file, out_dir)
   avcopy(report_file, combined_dir)
 }
