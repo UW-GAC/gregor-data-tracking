@@ -41,6 +41,10 @@ pedigree_qc <- function(participant_table) {
     pb <- filter(fam, proband_relationship == "Self")
     mother <- fam$participant_id[fam$proband_relationship == "Mother"]
     if (length(mother) > 0) {
+      if (length(mother) > 1) {
+        proband_errors[[f]] <- fam
+        break
+      }
       if (mother != pb$maternal_id) {
         proband_errors[[f]] <- fam
         break
@@ -48,6 +52,10 @@ pedigree_qc <- function(participant_table) {
     }
     father <- fam$participant_id[fam$proband_relationship == "Father"]
     if (length(father) > 0) {
+      if (length(father) > 1) {
+        proband_errors[[f]] <- fam
+        break
+      }
       if (father != pb$paternal_id) {
         proband_errors[[f]] <- fam
         break
