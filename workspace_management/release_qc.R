@@ -39,12 +39,16 @@ release_qc <- function(table_list, cascading=TRUE) {
     filter(participant_id %in% participants_ref) %>%
     select(family_id) %>%
     unlist()
-  findings_ref <- ref_table_list[["genetic_findings"]] %>%
-    select(participant_id, additional_family_members_with_variant) %>%
-    separate_longer_delim(additional_family_members_with_variant, "|") %>%
-    unlist(use.names=FALSE) %>%
-    na.omit() %>%
-    str_trim()
+  if ("genetic_findings" %in% names(ref_table_list)) {
+    findings_ref <- ref_table_list[["genetic_findings"]] %>%
+      select(participant_id, additional_family_members_with_variant) %>%
+      separate_longer_delim(additional_family_members_with_variant, "|") %>%
+      unlist(use.names=FALSE) %>%
+      na.omit() %>%
+      str_trim()
+  } else {
+    findings_ref <- c()
+  }
   table_list[["participant"]] <- table_list[["participant"]] %>%
     filter(participant_id %in% participants_ref | family_id %in% families_ref | participant_id %in% findings_ref)
   
