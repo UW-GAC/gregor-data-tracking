@@ -1,0 +1,59 @@
+---
+title: "Genetic findings over time"
+output: html_notebook
+---
+
+```{r}
+library(AnVIL)
+library(tidyverse)
+```
+
+
+```{r}
+cycles <- c(paste0("U0", 5:9), "U10")
+namespace <- "gregor-dcc"
+findings <- list()
+for (cycle in cycles) {
+  workspace <- paste0("GREGOR_COMBINED_CONSORTIUM_", cycle)
+  center <- avtable("participant", name=workspace, namespace=namespace) %>%
+    select(participant_id, gregor_center) %>%
+    mutate(gregor_center = ifelse(gregor_center == "CNH_I", "UCI", gregor_center))
+  findings[[cycle]] <- avtable("genetic_findings", name=workspace, namespace=namespace) %>%
+    left_join(center) %>%
+    mutate(cycle=cycle)
+}
+findings <- bind_rows(findings)
+```
+
+```{r}
+cycle <- "U11"
+centers <- list(
+  GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
+  HMB=c("BROAD", "UW_CRDR")
+)
+namespace <- "anvil-datastorage"
+findings_u11 <- list()
+for (consent in names(centers)) {
+  for (center in centers[[consent]]) {
+    workspace <- paste("AnVIL_GREGoR", center, cycle, consent, sep="_")
+  findings_u11[[paste0(center, consent)]] <- 
+    avtable("genetic_findings", name=workspace, namespace=namespace) %>%
+    mutate(gregor_center=center, cycle=cycle) %>%
+    select(-condition_id) # type conflict when binding
+  }
+}
+findings_u11 <- bind_rows(findings_u11)
+```
+
+```{r}
+findings <- bind_rows(findings, findings_u11)
+```
+
+```{r}
+findings %>%
+  count(cycle, gregor_center) %>%
+  pivot_wider(names_from = gregor_center, values_from = n)%>%
+  mutate(total = rowSums(across(-cycle))) %>%
+  write_tsv("findings_by_cycle.tsv")
+avcopy("findings_by_cycle.tsv", file.path(avstorage(), "U11_QC/"))
+```
