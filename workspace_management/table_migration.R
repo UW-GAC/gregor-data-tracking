@@ -4,8 +4,8 @@ library(dplyr)
 library(readr)
 source("workflow_inputs_json.R")
 
-cycle1 <- "U10"
-cycle2 <- "U11"
+cycle1 <- "U11"
+cycle2 <- "U12"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
@@ -30,9 +30,9 @@ for (i in seq_along(workspaces1)) {
         }
         tmpfile <- tempfile()
         write_tsv(dat, tmpfile)
-        bucket <- avbucket(namespace=namespace, name=workspaces2[i])
+        bucket <- avstorage(namespace=namespace, name=workspaces2[i])
         outfile <- paste0(bucket, "/", cycle1, "_data_tables/", workspaces1[i], "_", t, ".tsv")
-        gsutil_cp(tmpfile, outfile)
+        avcopy(tmpfile, outfile)
         unlink(tmpfile)
         table_list[[t]] <- outfile
     }

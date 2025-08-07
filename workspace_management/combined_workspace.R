@@ -4,27 +4,28 @@ library(dplyr)
 source("combine_tables.R")
 source("workflow_inputs_json.R")
 
-cycle <- "U10"
+cycle <- "U11"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
 )
+partner_workspaces <- c("AnVIL_GREGoR_IHOPE_P01_HMB")
 workspaces <- lapply(names(centers), function(consent) 
   paste("AnVIL_GREGoR", centers[[consent]], cycle, consent, sep="_")
 ) %>% unlist() %>% sort()
+workspaces <- c(workspaces, partner_workspaces)
 
 joint_call_tables <- c("aligned_dna_short_read", "aligned_dna_short_read_set", "called_variants_dna_short_read")
 joint_call_workspaces <- paste("AnVIL_GREGoR_DCC", cycle, names(centers), sep="_")
 
-sample_remove_file <- "gs://fc-secure-c0f33243-22f5-4fb9-826a-2a4eaffdf5a9/U10_QC/U10_participants_to_remove.tsv"
-gsutil_cp(sample_remove_file, ".")
+sample_remove_file <- "gs://fc-secure-c0f33243-22f5-4fb9-826a-2a4eaffdf5a9/U11_QC/U11_samples_to_remove.tsv"
+avcopy(sample_remove_file, ".")
 samples_to_remove <- read_tsv(basename(sample_remove_file))
 
 namespace <- "anvil-datastorage"
 combined_workspace <- paste0("GREGOR_COMBINED_CONSORTIUM_", cycle)
 combined_namespace <- "gregor-dcc"
 
-#model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/rna_readcounts/GREGoR_data_model.json"
 model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 model <- json_to_dm(model_url)
 
@@ -51,7 +52,6 @@ for (t in table_names) {
   }
 }
 
-
 # drop participants
 remove <- intersect(samples_to_remove$participant_id, table_list$participant$participant_id)
 if (length(remove) > 0) {
@@ -74,7 +74,7 @@ table_list[["experiment"]] <- experiment_table(table_list)
 table_list[["aligned"]] <- aligned_table(table_list)
 
 # write tsv files to google bucket
-bucket <- avbucket(namespace=combined_namespace, name=combined_workspace)
+bucket <- avstorage(namespace=combined_namespace, name=combined_workspace)
 file_list <- write_to_bucket(table_list, bucket)
 
 # write json for validation
