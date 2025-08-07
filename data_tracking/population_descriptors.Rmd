@@ -10,7 +10,7 @@ library(RColorBrewer)
 ```
 
 ```{r}
-workspace <- "GREGOR_COMBINED_CONSORTIUM_U10"
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U11"
 namespace <- "gregor-dcc"
 participant <- avtable("participant", name=workspace, namespace=namespace)
 ```
@@ -47,7 +47,8 @@ hm <- tibble(
   reported_ethnicity = rep(colnames(tmp), each=nrow(tmp)),
   expand.grid(tmp)
 ) %>%
-  rename(n = Var1)
+  rename(n = Var1) %>%
+  mutate(n_censored = ifelse(n < 20 & n > 0, "<20", n))
 
 races <- c(
   "American Indian or Alaska Native",
@@ -61,7 +62,7 @@ races <- c(
 )
 hm$reported_race <- factor(hm$reported_race, levels=rev(races))
 
-breaks <- c(-Inf, 0, 10, 50, 100, 500, 1000, 2000, 3000)
+breaks <- c(-Inf, 0, 20, 50, 100, 500, 1000, 2000, 4000)
 hm$n.cut <- cut(hm$n, breaks=breaks)
 levels(hm$n.cut) <- paste0(breaks[-length(breaks)]+1, "-", prettyNum(breaks[-1]))
 levels(hm$n.cut)[1] <- "0"
@@ -71,7 +72,7 @@ colors <- setNames(c("white", brewer.pal(nlevs, "Oranges")[1:nlevs-1]), levels(h
 ggplot(hm, aes(reported_ethnicity, reported_race, fill=n.cut)) +
   geom_tile() + 
   scale_fill_manual(values=colors, name="n") +
-  geom_text(aes(label = n)) + 
+  geom_text(aes(label = n_censored)) + 
   theme_minimal() + 
   theme(panel.grid.minor=element_blank(),
         panel.grid.major=element_blank(),

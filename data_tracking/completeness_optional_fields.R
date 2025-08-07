@@ -3,13 +3,13 @@ library(AnvilDataModels)
 library(tidyverse)
 library(jsonlite)
 
-#workspace <- "GREGOR_COMBINED_CONSORTIUM_U10"
+#workspace <- "GREGOR_COMBINED_CONSORTIUM_U11"
 #namespace <- "gregor-dcc"
 #tables <- avtables(name=workspace, namespace=namespace)
 #table_names <- tables$table
 #table_list <- lapply(table_names, avtable, name=workspace, namespace=namespace)
 
-cycle <- "U10"
+cycle <- "U11"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
@@ -62,11 +62,11 @@ for (t in table_names) {
     table_list[[t]] <- dat
   }
 }
-saveRDS(table_list, "combined_U10_tables.rds")
+saveRDS(table_list, paste0("combined_", cycle, "_tables.rds"))
 
 
 
-table_list <- readRDS("combined_U10_tables.rds")
+table_list <- readRDS(paste0("combined_", cycle, "_tables.rds"))
 
 
 model_json <- fromJSON(model_url)
@@ -144,4 +144,4 @@ comp_final <- bind_rows(completeness_centers) %>%
   pivot_wider(names_from = gregor_center, values_from = completeness)
 outfile <- paste("completeness_optional_fields", cycle, "all.tsv", sep="_")
 write_tsv(comp_final, outfile)
-gsutil_cp(outfile, file.path(avbucket(), paste0(cycle, "_QC"), outfile))
+avcopy(outfile, file.path(avstorage(), paste0(cycle, "_QC"), outfile))

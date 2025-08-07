@@ -17,7 +17,7 @@ library(RColorBrewer)
 Read data from tables
 
 ```{r}
-workspace <- "GREGOR_COMBINED_CONSORTIUM_U10"
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U11"
 namespace <- "gregor-dcc"
 participant <- avtable("participant", name=workspace, namespace=namespace)
 phenotype <- avtable("phenotype", name=workspace, namespace=namespace)
@@ -78,7 +78,7 @@ x <- lapply(data_types, function(t) {
     unlist(use.names=FALSE)
 })
 
-ggVennDiagram(x) + scale_fill_gradient(low="grey90", high="orange")
+ggVennDiagram(x) + scale_fill_gradient(low="grey90", high="orange") + scale_x_continuous(expand = expansion(mult = .2))
 ```
 
 
@@ -96,7 +96,7 @@ x <- lapply(data_types, function(t) {
     unlist(use.names=FALSE)
 })
 
-ggVennDiagram(x) + scale_fill_gradient(low="grey90", high="orange")
+ggVennDiagram(x) + scale_fill_gradient(low="grey90", high="orange") + scale_x_continuous(expand = expansion(mult = .2))
 ```
 
 
