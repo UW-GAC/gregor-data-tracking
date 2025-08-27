@@ -2,7 +2,7 @@ library(AnVIL)
 library(dplyr)
 library(readr)
 
-release <- "R03"
+release <- "R04"
 # determined order of consent groups from dbGaP page: 
 # https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs003047.v1.p1
 consent_groups <- c("HMB", "GRU")
@@ -96,4 +96,4 @@ write_tsv(ssm, paste("GREGoR", release, "SubjectSampleMapping_DS.txt", sep="_"))
 write_tsv(ssm_dd, paste("GREGoR", release, "SubjectSampleMapping_DD.txt", sep="_"))
 write_tsv(attr, paste("GREGoR", release, "SampleAttributes_DS.txt", sep="_"))
 write_tsv(attr_dd, paste("GREGoR", release, "SampleAttributes_DD.txt", sep="_"))
-avcopy(paste("GREGoR", release, "*_D*.txt", sep="_"), file.path(avstorage(), "R03_QC"))
+avcopy(paste("GREGoR", release, "*_D*.txt", sep="_"), file.path(avstorage(), paste0(release, "_QC")))

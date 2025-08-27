@@ -2,19 +2,25 @@ library(AnVIL)
 library(dplyr)
 library(readr)
 
-release <- "R03"
-consent_groups <- c("HMB", "GRU")
-namespace <- "anvil-datastorage"
+release <- "R04"
+# consent_groups <- c("HMB", "GRU")
+# namespace <- "anvil-datastorage"
 
-subj_list <- list()
-for (consent in consent_groups) {
-  workspace <- paste("AnVIL_GREGoR", release, "prep", consent, sep="_")
-  participant <- avtable("participant", namespace=namespace, name=workspace)
-  
-  subj_list[[consent]] <- participant %>%
-    select(participant_id, consent_code, gregor_center)
-}
-subj <- bind_rows(subj_list)
+# subj_list <- list()
+# for (consent in consent_groups) {
+#   workspace <- paste("AnVIL_GREGoR", release, "prep", consent, sep="_")
+#   participant <- avtable("participant", namespace=namespace, name=workspace)
+#   
+#   subj_list[[consent]] <- participant %>%
+#     select(participant_id, consent_code, gregor_center)
+# }
+# subj <- bind_rows(subj_list)
+
+namespace <- "gregor-dcc"
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U11"
+participant <- avtable("participant", namespace=namespace, name=workspace)
+subj <- participant %>%
+  select(participant_id, consent_code, gregor_center)
 
 for (RC in unique(subj$gregor_center)) {
   subj %>%
@@ -22,4 +28,4 @@ for (RC in unique(subj$gregor_center)) {
     select(participant_id, consent_code) %>%
     write_tsv(paste(RC, release, "participant_consent.txt", sep="_"))
 }
-avcopy(paste("*", release, "*consent*.txt", sep="_"), file.path(avstorage(), "R03_QC"))
+avcopy(paste("*", release, "*consent*.txt", sep="_"), file.path(avstorage(), "R04_QC/"))
