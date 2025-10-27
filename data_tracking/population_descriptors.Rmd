@@ -10,7 +10,7 @@ library(RColorBrewer)
 ```
 
 ```{r}
-workspace <- "GREGOR_COMBINED_CONSORTIUM_U11"
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U12"
 namespace <- "gregor-dcc"
 participant <- avtable("participant", name=workspace, namespace=namespace)
 ```

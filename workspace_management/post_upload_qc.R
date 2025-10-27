@@ -7,12 +7,12 @@ source("release_qc.R")
 source("pedigree_qc.R")
 source("affected_qc.R")
 
-cycle <- "U11"
+cycle <- "U12"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
 )
-partner_workspaces <- c("AnVIL_GREGoR_IHOPE_P01_HMB")
+partner_workspaces <- c("AnVIL_GREGoR_IHOPE_P02_HMB")
 workspaces <- lapply(names(centers), function(consent) 
   paste("AnVIL_GREGoR", centers[[consent]], cycle, consent, sep="_")
 ) %>% unlist() %>% sort()
@@ -21,7 +21,8 @@ namespace <- "anvil-datastorage"
 
 combined_bucket <- avstorage(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", cycle))
 
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/v1.9.2/GREGoR_data_model.json"
+#model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 
 for (w in workspaces) {
   message(w)
@@ -47,7 +48,7 @@ for (w in workspaces) {
     write_tsv(x, file=outfile)
     return(outfile)
   })
-  params <- list(tables=table_files, model=model_url)
+  params <- list(tables=table_files, model=model_url, check_bucket_paths=FALSE)
   report_file <- paste0(w, "_validation")
   custom_render_markdown("data_model_report", report_file, parameters=params)
   unlink(table_files)

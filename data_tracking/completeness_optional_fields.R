@@ -9,7 +9,7 @@ library(jsonlite)
 #table_names <- tables$table
 #table_list <- lapply(table_names, avtable, name=workspace, namespace=namespace)
 
-cycle <- "U11"
+cycle <- "U12"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
@@ -19,7 +19,8 @@ workspaces <- lapply(names(centers), function(consent)
 ) %>% unlist() %>% sort()
 namespace <- "anvil-datastorage"
 
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/v1.9.2/GREGoR_data_model.json"
+#model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 model <- json_to_dm(model_url)
 
 table_names <- setdiff(names(model), c("experiment", "aligned"))

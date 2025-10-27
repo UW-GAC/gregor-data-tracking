@@ -4,15 +4,16 @@ library(dplyr)
 library(readr)
 source("workflow_inputs_json.R")
 
-cycle1 <- "P01"
-cycle2 <- "P02"
+cycle1 <- "P02"
+cycle2 <- "P03"
 center <- "IHOPE"
 consent <- "HMB"
 workspaces1 <- paste("AnVIL_GREGoR", center, cycle1, consent, sep="_")
 workspaces2 <- sub(cycle1, cycle2, workspaces1)
 namespace <- "anvil-datastorage"
 
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/v1.9.2/GREGoR_data_model.json"
+#model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 
 i <- 1
 message(workspaces1[i])

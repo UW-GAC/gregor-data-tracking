@@ -4,12 +4,12 @@ library(dplyr)
 source("combine_tables.R")
 source("workflow_inputs_json.R")
 
-cycle <- "U11"
+cycle <- "U12"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
 )
-partner_workspaces <- c("AnVIL_GREGoR_IHOPE_P01_HMB")
+partner_workspaces <- c("AnVIL_GREGoR_IHOPE_P02_HMB")
 workspaces <- lapply(names(centers), function(consent) 
   paste("AnVIL_GREGoR", centers[[consent]], cycle, consent, sep="_")
 ) %>% unlist() %>% sort()
@@ -26,7 +26,8 @@ namespace <- "anvil-datastorage"
 combined_workspace <- paste0("GREGOR_COMBINED_CONSORTIUM_", cycle)
 combined_namespace <- "gregor-dcc"
 
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/v1.9.2/GREGoR_data_model.json"
+#model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 model <- json_to_dm(model_url)
 
 table_names <- setdiff(names(model), c("experiment", "aligned"))
