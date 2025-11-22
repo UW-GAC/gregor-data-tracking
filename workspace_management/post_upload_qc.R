@@ -86,7 +86,7 @@ for (w in workspaces) {
   
   # Affected status QC
   message("generating affected status QC")
-  log <- affected_qc(table_list[["participant"]])
+  log <- affected_qc(table_list[["participant"]], table_list[["phenotype"]])
   report_file <- paste0(w, "_affected_status_qc.txt")
   message("copying QC file")
   writeLines(knitr::kable(log), report_file)
