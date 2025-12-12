@@ -76,7 +76,7 @@ for (consent in names(workspaces)) {
   remove <- intersect(samples_to_remove$participant_id, table_list$participant$participant_id)
   if (length(remove) > 0) {
     original_table_list <- table_list
-    table_list <- remove_participants(remove, table_list)
+    table_list <- remove_participants(remove, table_list, model)
     drop_participants_log <- release_qc_log(original_table_list, table_list)
     report_file <- paste0(release, "_dropped_participants_", consent, ".log")
     writeLines(knitr::kable(drop_participants_log), report_file)

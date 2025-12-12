@@ -56,7 +56,7 @@ for (t in table_names) {
 # drop participants
 remove <- intersect(samples_to_remove$participant_id, table_list$participant$participant_id)
 if (length(remove) > 0) {
-  table_list <- remove_participants(remove, table_list)
+  table_list <- remove_participants(remove, table_list, model)
 }
 
 # create experiment and aligned tables

@@ -5,7 +5,7 @@ library(dplyr)
 library(readr)
 
 
-remove_participants <- function(participant_ids, table_list) {
+remove_participants <- function(participant_ids, table_list, model) {
   original_table_list <- table_list
   table_list[["genetic_findings"]] <- NULL # dm can't handle cyclical relationships
   for (p in participant_ids) {
@@ -20,6 +20,19 @@ remove_participants <- function(participant_ids, table_list) {
     }
     table_list[["genetic_findings"]] <- new_findings
   }
+  
+  # restore samples with no participant ids
+  if ("experiment_rna_short_read" %in% names(original_table_list)) {
+    orig_exprna <- original_table_list[["experiment_rna_short_read"]]
+    if ("rna_sample_type" %in% names(orig_exprna)) {
+      isogenic <- orig_exprna %>%
+        filter(rna_sample_type == "isogenic_cell_line")
+    }
+    new_exprna <- table_list[["experiment_rna_short_read"]] %>%
+      bind_rows(isogenic)
+    table_list[["experiment_rna_short_read"]] <- new_exprna
+  }
+  
   return(table_list)
 }
 
@@ -39,7 +52,7 @@ remove_participants_workspace <- function(participant_ids, workspace, namespace,
   }
   
   original_table_list <- table_list
-  table_list <- remove_participants(participant_ids, table_list)
+  table_list <- remove_participants(participant_ids, table_list, model)
   
   drop_participants_log <- list()
   # need to drop sets first
