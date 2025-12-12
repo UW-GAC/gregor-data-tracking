@@ -2,6 +2,7 @@ library(AnVIL)
 library(AnvilDataModels)
 library(dplyr)
 source("combine_tables.R")
+source("remove_participants.R")
 source("workflow_inputs_json.R")
 
 cycle <- "U12"
@@ -26,8 +27,7 @@ namespace <- "anvil-datastorage"
 combined_workspace <- paste0("GREGOR_COMBINED_CONSORTIUM_", cycle)
 combined_namespace <- "gregor-dcc"
 
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/v1.9.2/GREGoR_data_model.json"
-#model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 model <- json_to_dm(model_url)
 
 table_names <- setdiff(names(model), c("experiment", "aligned"))
@@ -56,18 +56,7 @@ for (t in table_names) {
 # drop participants
 remove <- intersect(samples_to_remove$participant_id, table_list$participant$participant_id)
 if (length(remove) > 0) {
-  original_table_list <- table_list
-  table_list[["genetic_findings"]] <- NULL # dm can't handle cyclical relationships
-  for (p in remove) {
-    table_list <- delete_rows(p, "participant", tables=table_list, model=model)
-  }
-  new_findings <- original_table_list[["genetic_findings"]]
-  for (p in remove) {
-    new_findings <- new_findings %>%
-      filter(!(participant_id %in% p)) %>%
-      filter(!grepl(p, additional_family_members_with_variant))
-  }
-  table_list[["genetic_findings"]] <- new_findings
+  table_list <- remove_participants(remove, table_list)
 }
 
 # create experiment and aligned tables

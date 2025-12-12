@@ -73,20 +73,10 @@ for (consent in names(workspaces)) {
   }
   
   # drop participants
-  remove_cons <- intersect(samples_to_remove$participant_id, table_list$participant$participant_id)
-  if (length(remove_cons) > 0) {
+  remove <- intersect(samples_to_remove$participant_id, table_list$participant$participant_id)
+  if (length(remove) > 0) {
     original_table_list <- table_list
-    table_list[["genetic_findings"]] <- NULL # dm can't handle cyclical relationships
-    for (p in remove_cons) {
-      table_list <- delete_rows(p, "participant", tables=table_list, model=model)
-    }
-    new_findings <- original_table_list[["genetic_findings"]]
-    for (p in remove_cons) {
-      new_findings <- new_findings %>%
-        filter(!(participant_id %in% p)) %>%
-        filter(!grepl(p, additional_family_members_with_variant))
-    }
-    table_list[["genetic_findings"]] <- new_findings
+    table_list <- remove_participants(remove, table_list)
     drop_participants_log <- release_qc_log(original_table_list, table_list)
     report_file <- paste0(release, "_dropped_participants_", consent, ".log")
     writeLines(knitr::kable(drop_participants_log), report_file)
