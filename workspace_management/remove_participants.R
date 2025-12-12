@@ -4,20 +4,8 @@ library(AnvilDataModels)
 library(dplyr)
 library(readr)
 
-remove_participants <- function(participant_ids, workspace, namespace, model_url, dry_run=TRUE) {
-  model <- json_to_dm(model_url)
-  
-  tables <- avtables(namespace=namespace, name=workspace)
-  table_list <- list()
-  for (t in tables$table) {
-    message("reading table ", t)
-    dat <- avtable(t, namespace=namespace, name=workspace)
-    if (grepl("_set$", t)) {
-      dat <- unnest_set_table(dat)
-    }
-    table_list[[t]] <- dat
-  }
-  
+
+remove_participants <- function(participant_ids, table_list, model) {
   original_table_list <- table_list
   table_list[["genetic_findings"]] <- NULL # dm can't handle cyclical relationships
   for (p in participant_ids) {
@@ -32,6 +20,39 @@ remove_participants <- function(participant_ids, workspace, namespace, model_url
     }
     table_list[["genetic_findings"]] <- new_findings
   }
+  
+  # restore samples with no participant ids
+  if ("experiment_rna_short_read" %in% names(original_table_list)) {
+    orig_exprna <- original_table_list[["experiment_rna_short_read"]]
+    if ("rna_sample_type" %in% names(orig_exprna)) {
+      isogenic <- orig_exprna %>%
+        filter(rna_sample_type == "isogenic_cell_line")
+    }
+    new_exprna <- table_list[["experiment_rna_short_read"]] %>%
+      bind_rows(isogenic)
+    table_list[["experiment_rna_short_read"]] <- new_exprna
+  }
+  
+  return(table_list)
+}
+
+
+remove_participants_workspace <- function(participant_ids, workspace, namespace, model_url, dry_run=TRUE) {
+  model <- json_to_dm(model_url)
+  
+  tables <- avtables(namespace=namespace, name=workspace)
+  table_list <- list()
+  for (t in tables$table) {
+    message("reading table ", t)
+    dat <- avtable(t, namespace=namespace, name=workspace)
+    if (grepl("_set$", t)) {
+      dat <- unnest_set_table(dat)
+    }
+    table_list[[t]] <- dat
+  }
+  
+  original_table_list <- table_list
+  table_list <- remove_participants(participant_ids, table_list, model)
   
   drop_participants_log <- list()
   # need to drop sets first
