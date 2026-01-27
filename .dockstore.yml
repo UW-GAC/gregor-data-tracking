@@ -1,0 +1,6 @@
+version: 1.2
+workflows:
+   - name: files_not_in_data_tables
+     subclass: WDL
+     primaryDescriptorPath: /files_not_in_data_tables.wdl
+     
