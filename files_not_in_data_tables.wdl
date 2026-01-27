@@ -32,4 +32,9 @@ task check_files_in_buckets {
     output {
         Array[File] file_list = glob("*files_not_referenced_in_data_tables.tsv")
     }
+
+    runtime {
+        docker: "us.gcr.io/broad-dsp-gcr-public/anvil-rstudio-bioconductor:3.21.0"
+        disks: "local-disk 16 SSD"
+    }
 }
