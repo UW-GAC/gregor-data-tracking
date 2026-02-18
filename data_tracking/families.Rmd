@@ -17,7 +17,7 @@ library(RColorBrewer)
 Read data from tables
 
 ```{r}
-workspace <- "GREGOR_COMBINED_CONSORTIUM_U12"
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U13"
 namespace <- "gregor-dcc"
 participant <- avtable("participant", name=workspace, namespace=namespace)
 phenotype <- avtable("phenotype", name=workspace, namespace=namespace)
@@ -180,7 +180,12 @@ count(findings, method_of_discovery) %>%
 
 ```{r}
 methods <- unique(na.omit(findings$method_of_discovery))
-colormap <- setNames(c(brewer.pal(length(methods), "Paired"), "#999999"), c(methods, "NA"))
+length(methods)
+#colormap <- setNames(c(brewer.pal(length(methods), "Paired"), "#999999"), c(methods, "NA"))
+colormap <- setNames(c(brewer.pal(length(methods[1:12]), "Paired"), 
+                       brewer.pal(length(methods[13:length(methods)]), "Pastel1"),
+                       "#999999"), 
+                     c(methods, "NA"))
 findings %>%
   mutate(method_of_discovery = factor(ifelse(is.na(method_of_discovery), "NA", method_of_discovery), levels=c(methods, "NA"))) %>%
   ggplot(aes(solve_status, fill=method_of_discovery)) +

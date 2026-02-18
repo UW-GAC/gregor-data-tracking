@@ -7,7 +7,7 @@ source("release_qc.R")
 source("pedigree_qc.R")
 source("affected_qc.R")
 
-cycle <- "U12"
+cycle <- "U13"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
@@ -21,7 +21,7 @@ namespace <- "anvil-datastorage"
 
 combined_bucket <- avstorage(namespace="gregor-dcc", name=paste0("GREGOR_COMBINED_CONSORTIUM_", cycle))
 
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/v1.9.2/GREGoR_data_model.json"
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/v1.10.1/GREGoR_data_model.json"
 #model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 
 for (w in workspaces) {

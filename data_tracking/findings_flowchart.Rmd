@@ -10,7 +10,7 @@ library(igraph)
 ```
 
 ```{r}
-workspace <- "GREGOR_COMBINED_CONSORTIUM_U12"
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U13"
 namespace <- "gregor-dcc"
 genetic_findings <- avtable("genetic_findings", name=workspace, namespace=namespace)
 participant <- avtable("participant", name=workspace, namespace=namespace)
