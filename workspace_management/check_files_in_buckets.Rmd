@@ -101,6 +101,7 @@ file_list <- list()
 for (i in seq_along(WORKSPACES$workspace)) {
   bucket <- WORKSPACES$path[i]
   workspace <- WORKSPACES$workspace[i]
+  print(workspace)
   
   top_level <- gsutil_ls(bucket, recursive=FALSE)
   subdirs <- top_level[str_detect(top_level, "/$")]

@@ -4,8 +4,8 @@ library(dplyr)
 library(readr)
 source("workflow_inputs_json.R")
 
-cycle1 <- "U12"
-cycle2 <- "U13"
+cycle1 <- "U13"
+cycle2 <- "U14"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
@@ -16,8 +16,7 @@ workspaces1 <- lapply(names(centers), function(consent)
 workspaces2 <- sub(cycle1, cycle2, workspaces1)
 namespace <- "anvil-datastorage"
 
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/v1.9.2/GREGoR_data_model.json"
-#model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 
 for (i in seq_along(workspaces1)) {
     message(workspaces1[i])

@@ -6,12 +6,12 @@ output: html_notebook
 ```{r}
 library(AnVIL)
 library(tidyverse)
-install.packages("ggwordcloud")
+#install.packages("ggwordcloud")
 library(ggwordcloud)
 ```
 
 ```{r}
-workspace <- "GREGOR_COMBINED_CONSORTIUM_U12"
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U13"
 namespace <- "gregor-dcc"
 participant <- avtable("participant", name=workspace, namespace=namespace)
 ```
@@ -61,6 +61,7 @@ corrections <- function(x) {
   x <- str_replace(x, " Region", "")
   x <- str_replace(x, " Peninsula", "")
   x <- str_replace(x, "^Asia$", "Asian")
+  x <- str_replace(x, "Austria\\.", "Austrian")
   x <- str_replace(x, "Belgium", "Belgian")
   x <- str_replace(x, "Czech Republic", "Czech")
   x <- str_replace(x, "Denmark", "Danish")

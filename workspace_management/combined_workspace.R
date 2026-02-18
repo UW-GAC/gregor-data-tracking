@@ -5,7 +5,7 @@ source("combine_tables.R")
 source("remove_participants.R")
 source("workflow_inputs_json.R")
 
-cycle <- "U12"
+cycle <- "U13"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
@@ -19,7 +19,7 @@ workspaces <- c(workspaces, partner_workspaces)
 joint_call_tables <- c("aligned_dna_short_read", "aligned_dna_short_read_set", "called_variants_dna_short_read")
 joint_call_workspaces <- paste("AnVIL_GREGoR_DCC", cycle, names(centers), sep="_")
 
-sample_remove_file <- "gs://fc-secure-c0f33243-22f5-4fb9-826a-2a4eaffdf5a9/U11_QC/U11_samples_to_remove.tsv"
+sample_remove_file <- "gs://fc-secure-c0f33243-22f5-4fb9-826a-2a4eaffdf5a9/U13_QC/U13_samples_to_remove.tsv"
 avcopy(sample_remove_file, ".")
 samples_to_remove <- read_tsv(basename(sample_remove_file))
 
@@ -52,6 +52,7 @@ for (t in table_names) {
     table_list[[t]] <- dat
   }
 }
+saveRDS(table_list, "table_list.rds")
 
 # drop participants
 remove <- intersect(samples_to_remove$participant_id, table_list$participant$participant_id)

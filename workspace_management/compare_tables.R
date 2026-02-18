@@ -7,7 +7,7 @@ compare_tables <- function(table1_list, table2_list, table1_prefix, table2_prefi
   for (t in tables_to_check) {
     table1 <- table1_list[[t]]
     table2 <- table2_list[[t]]
-    fixme <- c("chrom", "instrument_ics_version")
+    fixme <- c("chrom", "instrument_ics_version", "smrtlink_server_version")
     for (f in fixme) {
       if (f %in% names(table1)) table1[[f]] <- as.character(table1[[f]])
     }
