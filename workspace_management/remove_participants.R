@@ -27,10 +27,10 @@ remove_participants <- function(participant_ids, table_list, model) {
     if ("rna_sample_type" %in% names(orig_exprna)) {
       isogenic <- orig_exprna %>%
         filter(rna_sample_type == "isogenic_cell_line")
+      new_exprna <- table_list[["experiment_rna_short_read"]] %>%
+        bind_rows(isogenic)
+      table_list[["experiment_rna_short_read"]] <- new_exprna
     }
-    new_exprna <- table_list[["experiment_rna_short_read"]] %>%
-      bind_rows(isogenic)
-    table_list[["experiment_rna_short_read"]] <- new_exprna
   }
   
   return(table_list)

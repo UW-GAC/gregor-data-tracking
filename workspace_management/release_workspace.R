@@ -6,12 +6,13 @@ library(dplyr)
 library(readr)
 library(jsonlite)
 source("combine_tables.R")
+source("remove_participants.R")
 source("release_qc.R")
 source("workflow_inputs_json.R")
 
-cycle <- "U11"
-release <- "R04"
-prev_release <- "R03" # to check for dropped participants
+cycle <- "U13"
+release <- "R05"
+prev_release <- "R04" # to check for dropped participants
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
@@ -20,28 +21,27 @@ workspaces <- lapply(names(centers), function(consent)
   paste("AnVIL_GREGoR", centers[[consent]], cycle, consent, sep="_")
 )
 names(workspaces) <- names(centers)
-workspaces[["HMB"]] <- c(workspaces[["HMB"]], "AnVIL_GREGoR_IHOPE_P01_HMB")
+workspaces[["HMB"]] <- c(workspaces[["HMB"]], "AnVIL_GREGoR_IHOPE_P02_HMB")
 namespace <- "anvil-datastorage"
 combined_namespace <- namespace
 
-joint_call_tables <- c("aligned_dna_short_read", "aligned_dna_short_read_set", "called_variants_dna_short_read")
+joint_call_tables <- c("aligned_dna_short_read", "aligned_dna_short_read_set", "called_variants_dna_short_read",
+                       "aligned_pac_bio_set", "called_variants_pac_bio")
 joint_call_workspaces <- lapply(names(centers), function(x)
   paste("AnVIL_GREGoR_DCC", cycle, x, sep="_")
 )
 names(joint_call_workspaces) <- names(centers)
 
-reprocessed_mapping_file <- "gs://fc-secure-046bd4ec-b98e-44a6-8fb4-5c5a86642263/data_tables/reprocessedData_notin_mtCallset_R04.tsv"
-#avcopy(reprocessed_mapping_file, ".")
+reprocessed_mapping_file <- "gs://fc-secure-c0f33243-22f5-4fb9-826a-2a4eaffdf5a9/R05_QC/reprocessedData_notin_mtCallset_R05.tsv"
+avcopy(reprocessed_mapping_file, ".")
 reprocessed_map <- read_tsv(basename(reprocessed_mapping_file))
 
-sample_remove_file <- "gs://fc-secure-c0f33243-22f5-4fb9-826a-2a4eaffdf5a9/U11_QC/U11_samples_to_remove.tsv"
+sample_remove_file <- "gs://fc-secure-c0f33243-22f5-4fb9-826a-2a4eaffdf5a9/U13_QC/U13_samples_to_remove.tsv"
 #avcopy(sample_remove_file, ".")
 samples_to_remove <- read_tsv(basename(sample_remove_file)) %>%
   select(participant_id)
 
-# use data model version 1.9
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/0418b30badca6dcfeb74b655df6e1831f0d22bd2/GREGoR_data_model.json"
-#model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/main/GREGoR_data_model.json"
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/main/GREGoR_data_model.json"
 model <- json_to_dm(model_url)
 
 table_names <- setdiff(names(model), c("experiment", "aligned"))
@@ -135,7 +135,7 @@ for (consent in names(workspaces)) {
                        model_url = model_url, 
                        workspace = combined_workspace, 
                        namespace = combined_namespace,
-                       check_vcf = "true")
+                       check_vcf = "false")
   avcopy(paste0(combined_workspace, "_validate_gregor_model.json"), bucket)
 }
 
