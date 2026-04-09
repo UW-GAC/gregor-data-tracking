@@ -16,7 +16,8 @@ release_qc <- function(table_list, cascading=TRUE) {
   for (t in types) {
     experiment_table <- paste0("experiment_", t)
     experiment <- table_list[[experiment_table]]
-    aligned_read <- table_list[[paste0("aligned_", t)]]
+    check_table_name <- ifelse(t == "optical_mapping", "molecule_file_optical_mapping", paste0("aligned_", t))
+    aligned_read <- table_list[[check_table_name]]
     experiment_id_col <- paste0("experiment_", t, "_id")
     table_list[[experiment_table]] <- experiment %>%
       filter(.data[[experiment_id_col]] %in% aligned_read[[experiment_id_col]])

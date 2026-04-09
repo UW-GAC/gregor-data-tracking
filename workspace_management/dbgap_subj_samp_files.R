@@ -2,7 +2,7 @@ library(AnVIL)
 library(dplyr)
 library(readr)
 
-release <- "R04"
+release <- "R05"
 # determined order of consent groups from dbGaP page: 
 # https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs003047.v1.p1
 consent_groups <- c("HMB", "GRU")
@@ -34,7 +34,7 @@ subj_list <- list()
 ssm_list <- list()
 attr_list <- list()
 for (consent in consent_groups) {
-  workspace <- paste("AnVIL_GREGoR", release, "prep",consent, sep="_")
+  workspace <- paste("AnVIL_GREGoR", release, "prep", consent, sep="_")
   participant <- avtable("participant", namespace=namespace, name=workspace)
   analyte <- avtable("analyte", namespace=namespace, name=workspace)
   
