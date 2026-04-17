@@ -8,6 +8,8 @@ library(readr)
 remove_participants <- function(participant_ids, table_list, model) {
   original_table_list <- table_list
   table_list[["genetic_findings"]] <- NULL # dm can't handle cyclical relationships
+  opt_map_tables <- names(table_list)[grepl("optical_mapping", names(table_list))]
+  for (t in opt_map_tables) table_list[[t]] <- NULL # more cyclical relationships
   for (p in participant_ids) {
     table_list <- delete_rows(p, "participant", tables=table_list, model=model)
   }
@@ -19,6 +21,15 @@ remove_participants <- function(participant_ids, table_list, model) {
         filter(!grepl(p, additional_family_members_with_variant))
     }
     table_list[["genetic_findings"]] <- new_findings
+  }
+  if (length(opt_map_tables) > 0) {
+    opt_map_participants <- original_table_list[["experiment_optical_mapping"]] %>%
+      inner_join(original_table_list[["analyte"]], by="analyte_id") %>%
+      select(participant_id) %>%
+      unlist()
+    # logic to drop participants from optical mapping table is complex, for now just check if we need to do it
+    stopifnot(all(opt_map_participants %in% table_list[["participant"]][["participant_id"]]))
+    for (t in opt_map_tables) table_list[[t]] <- original_table_list[[t]]
   }
   
   # restore samples with no participant ids

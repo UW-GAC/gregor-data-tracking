@@ -61,25 +61,49 @@ experiment_table <- function(table_list) {
 
 # create aligned table
 aligned_table <- function(table_list) {
+  # select only one aligned table for optical mapping
+  drop_opt_map <- c("aligned_assembly_optical_mapping", "aligned_optical_mapping")
   aligned_tables <- setdiff(
     names(table_list)[grepl("^aligned", names(table_list))],
-    names(table_list)[grepl("_set$", names(table_list))]
+    c(
+      names(table_list)[grepl("_set$", names(table_list))],
+      drop_opt_map
+    )
   )
   lapply(aligned_tables, function(t) {
-    experiment_table <- sub("^aligned", "experiment", t)
-    experiment_id <- paste0(experiment_table, "_id")
-    table_list[[t]] %>%
-      select(id_in_table = paste0(t, "_id"), !!experiment_id,
-             aligned_file = paste0(t, "_file"),
-             aligned_index_file = paste0(t, "_index_file")) %>%
-      left_join(table_list[[experiment_table]]) %>%
-      select(id_in_table, !!experiment_id, analyte_id,
-             aligned_file, aligned_index_file) %>%
-      left_join(table_list[["analyte"]]) %>%
-      select(id_in_table, participant_id, 
-             aligned_file, aligned_index_file) %>%
-      mutate(aligned_id = paste(t, id_in_table, sep="."),
-             table_name = t)
+    if (grepl("optical_mapping", t)) {
+      experiment_table <- "experiment_optical_mapping"
+      experiment_id <- paste0(experiment_table, "_id")
+      tmp <- table_list[[t]] %>%
+        left_join(table_list[["molecule_file_optical_mapping"]], 
+                  by="molecule_file_optical_mapping_id") %>%
+        select(id_in_table = paste0(t, "_id"), !!experiment_id,
+               aligned_file = paste0(t, "_file"),
+               aligned_index_file = paste0(t, "_index_file")) %>%
+        left_join(table_list[[experiment_table]]) %>%
+        select(id_in_table, !!experiment_id, analyte_id,
+               aligned_file, aligned_index_file) %>%
+        left_join(table_list[["analyte"]]) %>%
+        select(id_in_table, participant_id, 
+               aligned_file, aligned_index_file) %>%
+        mutate(aligned_id = paste(t, id_in_table, sep="."),
+               table_name = t)
+    } else {
+      experiment_table <- sub("^aligned", "experiment", t)
+      experiment_id <- paste0(experiment_table, "_id")
+      table_list[[t]] %>%
+        select(id_in_table = paste0(t, "_id"), !!experiment_id,
+               aligned_file = paste0(t, "_file"),
+               aligned_index_file = paste0(t, "_index_file")) %>%
+        left_join(table_list[[experiment_table]]) %>%
+        select(id_in_table, !!experiment_id, analyte_id,
+               aligned_file, aligned_index_file) %>%
+        left_join(table_list[["analyte"]]) %>%
+        select(id_in_table, participant_id, 
+               aligned_file, aligned_index_file) %>%
+        mutate(aligned_id = paste(t, id_in_table, sep="."),
+               table_name = t)
+    }
   }) %>% bind_rows()
 }
 
