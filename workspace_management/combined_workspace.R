@@ -16,10 +16,9 @@ workspaces <- lapply(names(centers), function(consent)
 ) %>% unlist() %>% sort()
 workspaces <- c(workspaces, partner_workspaces)
 
-joint_call_cycle <- "U13"
 joint_call_tables <- c("aligned_dna_short_read", "aligned_dna_short_read_set", "called_variants_dna_short_read",
                        "aligned_pac_bio_set", "called_variants_pac_bio")
-joint_call_workspaces <- paste("AnVIL_GREGoR_DCC", joint_call_cycle, names(centers), sep="_")
+joint_call_workspaces <- paste("AnVIL_GREGoR_DCC", cycle, names(centers), sep="_")
 
 sample_remove_file <- "gs://fc-secure-c0f33243-22f5-4fb9-826a-2a4eaffdf5a9/U14_QC/U14_samples_to_remove.tsv"
 #avcopy(sample_remove_file, ".")

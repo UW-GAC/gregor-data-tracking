@@ -5,13 +5,12 @@ library(readr)
 library(stringr)
 source("workflow_inputs_json.R")
 
-release <- "R04"
+release <- "R05"
 consent <- c("GRU", "HMB")
 workspaces <- paste("AnVIL_GREGoR", release, consent, sep="_")
 namespace <- "anvil-datastorage"
 
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/0418b30badca6dcfeb74b655df6e1831f0d22bd2/GREGoR_data_model.json"
-#model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
 model <- AnvilDataModels::json_to_dm(model_url)
 
 write_original_table <- function(dat, table_name, bucket) {
