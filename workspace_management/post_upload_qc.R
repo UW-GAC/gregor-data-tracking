@@ -8,7 +8,7 @@ source("pedigree_qc.R")
 source("affected_qc.R")
 source("date_qc.R")
 
-cycle <- "U14"
+cycle <- "U15"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
