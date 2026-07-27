@@ -11,7 +11,7 @@ library(ggwordcloud)
 ```
 
 ```{r}
-workspace <- "GREGOR_COMBINED_CONSORTIUM_U13"
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U15"
 namespace <- "gregor-dcc"
 participant <- avtable("participant", name=workspace, namespace=namespace)
 ```

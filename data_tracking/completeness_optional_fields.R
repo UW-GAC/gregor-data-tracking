@@ -9,7 +9,7 @@ library(jsonlite)
 #table_names <- tables$table
 #table_list <- lapply(table_names, avtable, name=workspace, namespace=namespace)
 
-cycle <- "U13"
+cycle <- "U15"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")

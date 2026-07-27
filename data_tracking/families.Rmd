@@ -17,7 +17,7 @@ library(RColorBrewer)
 Read data from tables
 
 ```{r}
-workspace <- "GREGOR_COMBINED_CONSORTIUM_U13"
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U15"
 namespace <- "gregor-dcc"
 participant <- avtable("participant", name=workspace, namespace=namespace)
 phenotype <- avtable("phenotype", name=workspace, namespace=namespace)

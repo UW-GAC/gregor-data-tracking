@@ -10,7 +10,7 @@ library(igraph)
 ```
 
 ```{r}
-workspace <- "GREGOR_COMBINED_CONSORTIUM_U13"
+workspace <- "GREGOR_COMBINED_CONSORTIUM_U15"
 namespace <- "gregor-dcc"
 genetic_findings <- avtable("genetic_findings", name=workspace, namespace=namespace)
 participant <- avtable("participant", name=workspace, namespace=namespace)
@@ -27,7 +27,7 @@ sorted <- function(x,y,z) {
 
 findings <- genetic_findings %>%
   filter(!is.na(method_of_discovery)) %>%
-  mutate(variant_type = ifelse(variant_type %in% c("SNV", "INDEL"), "SNV/INDEL", variant_type)) %>%
+  #mutate(variant_type = ifelse(variant_type %in% c("SNV", "INDEL"), "SNV/INDEL", variant_type)) %>%
   separate_wider_delim(method_of_discovery, delim="|", names=paste0("method", 1:3), too_few="align_start") %>%
   mutate(across(starts_with("method"), str_trim)) %>%
   rowwise() %>%
@@ -97,7 +97,8 @@ for (type in colnames(dat)) {
 }
 
 colormap <- function(x) {
-  variant_types <- c("SNV/INDEL", "SV", "CNV", "RE", "MEI", "STR")
+  #variant_types <- c("SNV/INDEL", "SV", "CNV", "RE", "MEI", "STR")
+  variant_types <- c("SNV", "INDEL", "SV", "RE")
   map <- c("Cases", "ome", variant_types)
   for (i in seq_along(map)) {
     if (str_detect(x, map[i]))
