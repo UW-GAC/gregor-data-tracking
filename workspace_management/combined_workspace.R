@@ -5,7 +5,7 @@ source("combine_tables.R")
 source("remove_participants.R")
 source("workflow_inputs_json.R")
 
-cycle <- "U14"
+cycle <- "U15"
 centers <- list(
   GRU=c("BCM", "UCI", "GSS", "BROAD", "UW_CRDR"),
   HMB=c("BROAD", "UW_CRDR")
@@ -17,8 +17,12 @@ workspaces <- lapply(names(centers), function(consent)
 workspaces <- c(workspaces, partner_workspaces)
 
 joint_call_tables <- c("aligned_dna_short_read", "aligned_dna_short_read_set", "called_variants_dna_short_read",
-                       "aligned_pac_bio_set", "called_variants_pac_bio")
-joint_call_workspaces <- paste("AnVIL_GREGoR_DCC", cycle, names(centers), sep="_")
+                       "aligned_pac_bio_set", "called_variants_pac_bio", "aligned_rna_short_read")
+joint_call_workspaces <- c(
+  paste("AnVIL_GREGoR_DCC", cycle, names(centers), sep="_"),
+  paste("AnVIL_GREGoR_GSS_RC01", names(centers), "RNA", sep="_"),
+  paste("AnVIL_GREGoR_ALS_COMPUTE_P01", names(centers), sep="_")
+)
 
 sample_remove_file <- "gs://fc-secure-c0f33243-22f5-4fb9-826a-2a4eaffdf5a9/U14_QC/U14_samples_to_remove.tsv"
 #avcopy(sample_remove_file, ".")
@@ -29,10 +33,10 @@ combined_workspace <- paste0("GREGOR_COMBINED_CONSORTIUM_", cycle)
 combined_namespace <- "gregor-dcc"
 
 #model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/main/GREGoR_data_model.json"
-model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/v1.11.1/GREGoR_data_model.json"
+model_url <- "https://raw.githubusercontent.com/UW-GAC/gregor_data_models/refs/heads/v1.13.0/GREGoR_data_model.json"
 model <- json_to_dm(model_url)
 
-table_names <- setdiff(names(model), c("experiment", "aligned"))
+table_names <- setdiff(names(model), c("experiment", "aligned", "isogenic_cell_line"))
 
 table_list <- list()
 for (t in table_names) {
@@ -65,6 +69,18 @@ if (length(remove) > 0) {
 # create experiment and aligned tables
 table_list[["experiment"]] <- experiment_table(table_list)
 table_list[["aligned"]] <- aligned_table(table_list)
+table_list[["isogenic_cell_line"]] <- isogenic_cell_line(table_list)
+
+# check validation
+table_files <- sapply(table_list, function(x) {
+  outfile <- tempfile()
+  write_tsv(x, file=outfile)
+  return(outfile)
+})
+params <- list(tables=table_files, model=model_url, check_bucket_paths=FALSE)
+report_file <- paste0(combined_workspace, "_validation")
+custom_render_markdown("data_model_report", report_file, parameters=params)
+unlink(table_files)
 
 # write tsv files to google bucket
 bucket <- avstorage(namespace=combined_namespace, name=combined_workspace)

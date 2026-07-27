@@ -49,6 +49,10 @@ combine_tables <- function(table_name, model, workspaces, namespace) {
 experiment_table <- function(table_list) {
   experiment_tables <- names(table_list)[grepl("^experiment", names(table_list))]
   lapply(experiment_tables, function(t) {
+    if ("rna_sample_type" %in% names(table_list[[t]])) {
+      table_list[[t]] <- table_list[[t]] %>%
+        filter((!rna_sample_type %in% "isogenic_cell_line"))
+    }
     table_list[[t]] %>%
       select(id_in_table = paste0(t, "_id"), analyte_id) %>%
       left_join(table_list[["analyte"]]) %>%
@@ -104,6 +108,23 @@ aligned_table <- function(table_list) {
         mutate(aligned_id = paste(t, id_in_table, sep="."),
                table_name = t)
     }
+  }) %>% bind_rows()
+}
+
+
+# create isogenic_cell_line table
+isogenic_cell_line <- function(table_list) {
+  experiment_tables <- intersect(names(table_list), c("experiment_rna_short_read", "experment_atac_short_read"))
+  if (length(experiment_tables) == 0) return(NULL)
+  lapply(experiment_tables, function(t) {
+    if ("rna_sample_type" %in% names(table_list[[t]])) {
+      table_list[[t]] <- table_list[[t]] %>%
+        filter((rna_sample_type %in% "isogenic_cell_line"))
+    }
+    table_list[[t]] %>%
+      select(id_in_table = paste0(t, "_id")) %>%
+      mutate(isogenic_cell_line_id = paste(t, id_in_table, sep="."),
+             table_name = t)
   }) %>% bind_rows()
 }
 
